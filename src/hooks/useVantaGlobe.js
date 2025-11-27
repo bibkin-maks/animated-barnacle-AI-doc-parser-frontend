@@ -1,15 +1,15 @@
-// /src/hooks/useVantaGlobe.js
-import { useEffect, useRef, useState } from "react";
-import GLOBE from "vanta/dist/vanta.globe.min";
+import { useEffect, useRef } from "react";
+
 import * as THREE from "three";
+import GLOBE from "vanta/dist/vanta.globe.min";
 
 export default function useVantaGlobe(options = {}) {
   const vantaRef = useRef(null);
-  const effectRef = useRef(null); 
+  const vantaInstance = useRef(null);
 
   useEffect(() => {
-    if (!effectRef.current && vantaRef.current) {
-      effectRef.current = GLOBE({
+    if (!vantaInstance.current && vantaRef.current) {
+      vantaInstance.current = GLOBE({
         el: vantaRef.current,
         THREE,
         mouseControls: true,
@@ -23,11 +23,13 @@ export default function useVantaGlobe(options = {}) {
       });
     }
 
-
     return () => {
-      
+      if (vantaInstance.current) {
+        vantaInstance.current.destroy();
+        vantaInstance.current = null;
+      }
     };
-  }, []); 
+  }, []); // only run once
 
   return vantaRef;
 }

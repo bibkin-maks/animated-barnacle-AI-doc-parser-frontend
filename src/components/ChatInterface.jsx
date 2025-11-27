@@ -20,9 +20,7 @@ const ChatInterface = ({ documentName }) => {
 
   const chatRef = useRef(null);
 
-  // ---------------------------------------------------------------------
-  // 🧠 SINGLE, SAFE HYDRATION EFFECT — replaces all your old hydration code
-  // ---------------------------------------------------------------------
+
   useEffect(() => {
     if (!user || !user.messages) {
       dispatch(setMessages([]));
@@ -39,7 +37,7 @@ const ChatInterface = ({ documentName }) => {
     dispatch(setMessages(formatted));
   }, [user?.messages]); // ONLY depend on messages themselves
 
-  // ---------------------------------------------------------------------
+
 
   const sendMessage = useCallback(async () => {
     const text = input.trim();

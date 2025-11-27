@@ -134,18 +134,7 @@ export default function FileUpload({ className = "" , showAskQuestion = true, na
             Remove
           </button>
 
-          {showAskQuestion && <button
-            className="
-              px-4 py-2 rounded-xl border border-blue-300/50 
-              text-blue-300 bg-blue-300/10 text-sm transition
-              hover:bg-blue-300/20 hover:text-white
-              w-[180px] text-center
-            "
-            onClick={() => navigate("/chat")}
-          >
-            Ask A Question
-          </button>
-          }
+
         </div>
       )}
     </div>

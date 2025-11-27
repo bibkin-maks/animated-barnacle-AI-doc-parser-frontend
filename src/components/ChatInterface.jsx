@@ -16,63 +16,28 @@ const ChatInterface = ({ documentName }) => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const { token, user, logout } = useAuth(); // added logout (optional)
+  const { token, user, logout } = useAuth();
 
   const chatRef = useRef(null);
 
-  useEffect(() => {
-  if (!user) {
-    // user logged out
-    dispatch(setMessages([]));
-    return;
-  }
-
-  if (!user.messages) {
-    dispatch(setMessages([]));
-    return;
-  }
-
-  const formatted = user.messages.map((m, i) => ({
-    id: i + 1,
-    text: m.content,
-    sender: m.role.toLowerCase() === "ai" ? "bot" : "user",
-  }));
-
-  const reduxCount = messages.length;
-  const dbCount = formatted.length;
-
-  // 🟢 Detect account switch
-  if (messages.length > 0 && user._id !== window.lastUserId) {
-    dispatch(setMessages(formatted));
-  }
-
-  // 🟢 Detect DB updates
-  if (reduxCount !== dbCount) {
-    dispatch(setMessages(formatted));
-  }
-
-  // Save last used account
-  window.lastUserId = user._id;
-
-}, [user?.messages, user?._id]);
-
-
-
 
   useEffect(() => {
-    if (!user?.messages) return;
+    if (!user || !user.messages) {
+      dispatch(setMessages([]));
+      return;
+    }
 
+    // Convert DB messages → Redux format
     const formatted = user.messages.map((m, i) => ({
       id: i + 1,
       text: m.content,
       sender: m.role.toLowerCase() === "ai" ? "bot" : "user",
     }));
 
-    // only hydrate if Redux is empty
-    if (messages.length === 0) {
-      dispatch(setMessages(formatted));
-    }
-  }, [user]);
+    dispatch(setMessages(formatted));
+  }, [user?.messages]); // ONLY depend on messages themselves
+
+
 
   const sendMessage = useCallback(async () => {
     const text = input.trim();
@@ -110,10 +75,7 @@ const ChatInterface = ({ documentName }) => {
   return (
     <div className="flex flex-col h-[70vh] max-w-[900px] w-full mx-auto bg-[#161b22] text-[#e6edf3] border border-[#30363d] rounded-lg overflow-hidden">
       
-      <div
-        ref={chatRef}
-        className="flex-1 overflow-y-auto p-5 flex flex-col gap-3 bg-[#0d1117]"
-      >
+      <div ref={chatRef} className="flex-1 overflow-y-auto p-5 flex flex-col gap-3 bg-[#0d1117]">
         {messages.length === 0 ? (
           <div className="text-center text-[#8b949e]">
             {documentName

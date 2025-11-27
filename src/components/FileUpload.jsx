@@ -121,7 +121,7 @@ export default function FileUpload({ className = "" , showAskQuestion = true, na
           <div className="relative max-w-[340px] text-center opacity-90 flex items-center gap-2 text-sm ">
             <span className=" truncate">{storedFileName}</span>
           </div>
-
+          <div className="flex flex-wrap justify-center gap-3 w-full">
           <button
             onClick={removeFile}
             className="
@@ -146,6 +146,7 @@ export default function FileUpload({ className = "" , showAskQuestion = true, na
             Ask A Question
           </button>
           }
+          </div>
         </div>
       )}
     </div>

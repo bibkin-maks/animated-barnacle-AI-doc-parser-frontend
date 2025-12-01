@@ -1,6 +1,7 @@
 # AI PDF Parser
 
-![output](https://github.com/user-attachments/assets/895ba002-c52c-4752-9ffc-604930cb8e11)
+![output](https://github.com/user-attachments/assets/94aa779f-5a89-490e-bd7f-a3db1af28d65)
+
 
 
 This is a simple project using React and Tailwind CSS for the frontend and Python FastAPI for the backend.

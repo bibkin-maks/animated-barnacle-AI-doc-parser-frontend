@@ -3,8 +3,8 @@
 ![output](https://github.com/user-attachments/assets/94aa779f-5a89-490e-bd7f-a3db1af28d65)
 
 
+An AI PDF parser made to extract data from your documents and process it with trained AI models. 
 
-This is a simple project using React and Tailwind CSS for the frontend and Python FastAPI for the backend.
 
 - [Backend Repository](https://github.com/bibkin-maks/animated-barnacle-AI-doc-parser)
 

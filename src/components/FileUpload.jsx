@@ -80,6 +80,7 @@ export default function FileUpload({ className = "", showAskQuestion = true, nav
               <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
           </div>
+<<<<<<< Updated upstream
 
           <div className="text-center space-y-2">
             <p className="text-lg font-medium tracking-tight text-white group-hover:text-purple-100 transition-colors">
@@ -125,6 +126,33 @@ export default function FileUpload({ className = "", showAskQuestion = true, nav
                 Start Chat
               </button>
             )}
+=======
+          <div className="flex flex-wrap justify-center gap-3 w-full">
+          <button
+            onClick={removeFile}
+            className="
+              px-4 py-2 rounded-xl border border-red-300/50 
+              text-red-300 bg-red-300/10 text-sm transition
+              hover:bg-red-300/20 hover:text-white 
+              w-[180px] text-center
+            "
+          >
+            Remove
+          </button>
+
+          {showAskQuestion && <button
+            className="
+              px-4 py-2 rounded-xl border border-blue-300/50 
+              text-blue-300 bg-blue-300/10 text-sm transition
+              hover:bg-blue-300/20 hover:text-white
+              w-[180px] text-center
+            "
+            onClick={() => navigate("/chat")}
+          >
+            Ask A Question
+          </button>
+          }
+>>>>>>> Stashed changes
           </div>
         </div>
       )}

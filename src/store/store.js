@@ -1,5 +1,6 @@
 import { configureStore } from "@reduxjs/toolkit";
 import chatReducer from "./chatSlice";
+import { api } from "../slices/apiSlice";
 
 // ========================================================================
 // Redux Store
@@ -7,17 +8,17 @@ import chatReducer from "./chatSlice";
 export const store = configureStore({
   reducer: {
     chat: chatReducer,
+    [api.reducerPath]: api.reducer, // ✅ REQUIRED
   },
 
-  // If you need custom middleware later (logger, API listener, etc.)
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
-      serializableCheck: false, // can turn on if needed
-    }),
+      serializableCheck: false,
+    }).concat(api.middleware),
 
   devTools: process.env.NODE_ENV !== "production",
 });
 
-// Optional helpers if you move to TS later
+// Optional helpers
 export const getState = () => store.getState();
 export const dispatch = store.dispatch;

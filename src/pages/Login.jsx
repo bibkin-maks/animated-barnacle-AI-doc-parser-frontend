@@ -14,8 +14,7 @@ export default function Login() {
   const navigate = useNavigate();
   const { login, user, token } = useAuth();
 
-  // Fixed animated background
-  const vantaRef = useVantaGlobe();
+  // const vantaRef = useVantaGlobe();
 
   // Redirect if user is already authenticated
   useEffect(() => {
@@ -46,7 +45,7 @@ export default function Login() {
 
   return (
     <div
-      ref={vantaRef}
+      // ref={vantaRef}
       className="
         min-h-screen w-full relative font-montserrat overflow-hidden
         flex items-center justify-center px-4

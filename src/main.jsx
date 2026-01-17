@@ -2,6 +2,8 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { Provider } from "react-redux";
+import { store } from "./store/store";
 
 import App from "./App.jsx";
 import { AuthProvider } from "./context/AuthContext";
@@ -15,23 +17,26 @@ if (!googleApi) {
 }
 
 createRoot(document.getElementById("root")).render(
-  <StrictMode>
+ <StrictMode>
+          {/* Router must be outer wrapper */}
+          <BrowserRouter>
 
-    {/* Router must be outer wrapper */}
-    <BrowserRouter>
+            {/* Google OAuth context */}
+            <GoogleOAuthProvider clientId={googleApi}>
+                    <Provider store={store}>
 
-      {/* Google OAuth context */}
-      <GoogleOAuthProvider clientId={googleApi}>
+                          {/* Authentication context (user + token) */}
+                          <AuthProvider>
 
-        {/* Authentication context (user + token) */}
-        <AuthProvider>
+                            {/* App routes + Redux store provider inside App */}
+                            <App />
 
-          {/* App routes + Redux store provider inside App */}
-          <App />
+                          </AuthProvider>
+                      </Provider>
+                    
 
-        </AuthProvider>
-
-      </GoogleOAuthProvider>
-    </BrowserRouter>
-  </StrictMode>
+            </GoogleOAuthProvider>
+          </BrowserRouter>
+        
+   </StrictMode>
 );

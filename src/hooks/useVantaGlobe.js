@@ -1,35 +1,38 @@
-import { useEffect, useRef } from "react";
-
+// /src/hooks/useVantaGlobe.js
+import { useEffect, useRef, useState } from "react";
+import CLOUDS from "vanta/dist/vanta.clouds.min";
 import * as THREE from "three";
-import GLOBE from "vanta/dist/vanta.globe.min";
 
 export default function useVantaGlobe(options = {}) {
   const vantaRef = useRef(null);
-  const vantaInstance = useRef(null);
+  const [vantaEffect, setVantaEffect] = useState(null);
 
   useEffect(() => {
-    if (!vantaInstance.current && vantaRef.current) {
-      vantaInstance.current = GLOBE({
-        el: vantaRef.current,
-        THREE,
-        mouseControls: true,
-        touchControls: true,
-        gyroControls: false,
-        backgroundColor: 0x050711,
-        color: 0x7c3aed,
-        color2: 0x22d3ee,
-        size: 1.1,
-        ...options,
-      });
+    if (!vantaEffect) {
+      setVantaEffect(
+        CLOUDS({
+          el: vantaRef.current,
+          THREE,
+          mouseControls: false,
+          touchControls: true,
+          gyroControls: false,
+          minHeight: 200.00,
+          minWidth: 200.00,
+          skyColor: 0xd79568,
+          cloudColor: 0xadc7de,
+          sunColor: 0xfffe18,
+          sunGlareColor: 0xff3030,
+          sunlightColor: 0xff7830,
+          speed: 0.5,
+          ...options,
+        })
+      );
     }
 
     return () => {
-      if (vantaInstance.current) {
-        vantaInstance.current.destroy();
-        vantaInstance.current = null;
-      }
+      if (vantaEffect) vantaEffect.destroy();
     };
-  }, []); // only run once
+  }, [vantaEffect, options]);
 
   return vantaRef;
 }

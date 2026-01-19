@@ -1,5 +1,6 @@
 import { configureStore } from "@reduxjs/toolkit";
 import chatReducer from "./chatSlice";
+import calendarReducer from "../slices/calendarSlice";
 import { api } from "../slices/apiSlice";
 
 // ========================================================================
@@ -8,6 +9,7 @@ import { api } from "../slices/apiSlice";
 export const store = configureStore({
   reducer: {
     chat: chatReducer,
+    calendar: calendarReducer,
     [api.reducerPath]: api.reducer, // ✅ REQUIRED
   },
 

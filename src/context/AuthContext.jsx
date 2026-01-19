@@ -8,6 +8,7 @@ import {
 import PropTypes from "prop-types";
 import { useGetUserQuery, api } from "../slices/apiSlice";
 import { dispatch } from "../store/store";
+import { resetCalendar } from "../slices/calendarSlice";
 
 const AuthContext = createContext(null);
 
@@ -74,11 +75,23 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
+    // 1. Identify key before clearing user
+    const keyToRemove = user ? `calendar_events_${user.id}` : null;
+
+    // 2. Clear Context State
     setUser(null);
     setToken(null);
+
+    // 3. Clear Storage
     localStorage.removeItem("user");
     localStorage.removeItem("token");
+    if (keyToRemove) {
+      localStorage.removeItem(keyToRemove);
+    }
+
+    // 4. Reset Redux State
     dispatch(api.util.resetApiState());
+    dispatch(resetCalendar());
   };
 
   const refreshUser = async () => {
@@ -91,6 +104,11 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Derived storage key for user-specific data (e.g. calendar events)
+  const userStorageKey = useMemo(() => {
+    return user ? `calendar_events_${user.id}` : null;
+  }, [user]);
+
   const value = useMemo(
     () => ({
       user,
@@ -101,8 +119,9 @@ export function AuthProvider({ children }) {
       isAuthenticated: Boolean(token),
       isUserLoading,
       userErr,
+      userStorageKey, // Exposed for components to use
     }),
-    [user, token, isUserLoading, userErr]
+    [user, token, isUserLoading, userErr, userStorageKey]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

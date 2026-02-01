@@ -1,9 +1,22 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { FixedSizeList as List } from "react-window";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+    Book,
+    Plus,
+    Trash2,
+    Edit2,
+    FileText,
+    Search,
+    Menu,
+    LogOut,
+    ChevronRight,
+    MoreVertical,
+    Settings
+} from "lucide-react";
+
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import useVantaGlobe from "../hooks/useVantaGlobe";
 import useResizeObserver from "../hooks/useResizeObserver";
 import Sidebar from "../components/SideBar";
 import {
@@ -21,6 +34,7 @@ import {
 
 
 import RichTextEditor from "../components/RichTextEditor";
+
 
 const DEBOUNCE_DELAY = 1000;
 
@@ -154,12 +168,7 @@ export default function Notes() {
     }, [deleteNote, selectedNoteId]);
 
 
-    const itemData = useMemo(() => ({
-        notes,
-        selectedNoteId,
-        setSelectedNoteId,
-        handleDeleteNote
-    }), [notes, selectedNoteId, handleDeleteNote]);
+
 
     const firstName = useMemo(
         () => user?.name?.split(" ")[0] || "there",
@@ -167,239 +176,260 @@ export default function Notes() {
     );
 
     return (
-        <div className="relative h-screen w-full overflow-hidden font-montserrat text-white bg-transparent selection:bg-purple-500/30 flex flex-col">
-            {/* Force Update: Fixed Background Reference */}
+        <div className="relative h-screen w-full overflow-hidden font-montserrat text-white bg-transparent selection:bg-cyan-500/30 flex">
+            {/* Sidebar (Fixed) */}
             <Sidebar isOpen={isSidebarOpen} onToggle={toggleSidebar} onPurrAssist={handlePurrAssist} />
 
-
-            {/* Top Header Bar */}
-            <header className="relative z-10 flex-none h-16 w-full flex items-center justify-between px-4 lg:px-6 border-b border-white/5 bg-[#0f1115]/80 backdrop-blur-md">
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={toggleSidebar}
-                        className="p-2 rounded-xl hover:bg-white/10 transition-colors border border-transparent hover:border-white/10"
-                        aria-label="Toggle sidebar"
-                        type="button"
-                    >
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M3 12h18M3 6h18M3 18h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                    </button>
-                    <div className="flex flex-col gap-0.5">
-                        <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-400 font-bold hidden sm:block">
-                            Private Workspace
-                        </p>
-                        <h1 className="text-lg md:text-xl font-bold text-white tracking-tight">
-                            Notes
-                        </h1>
-                    </div>
-                </div>
-
-                {user && (
-                    <div className="flex items-center gap-6">
-                        <div className="text-right hidden sm:block">
-                            <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">
-                                Logged in as
-                            </p>
-                            <p className="text-sm font-semibold">
-                                {firstName}{" "}
-                                <span className="text-xs text-emerald-400 ml-1">● Premium</span>
-                            </p>
+            {/* Main Content Wrapper */}
+            <div className="flex-1 flex flex-col relative z-10 h-full overflow-hidden">
+                {/* Header */}
+                <header className="flex-none h-16 w-full flex items-center justify-between px-6 py-4">
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={toggleSidebar}
+                            className="p-2 rounded-xl hover:bg-white/10 text-white/70 hover:text-white transition-all duration-300"
+                        >
+                            <Menu size={20} />
+                        </button>
+                        <div>
+                            <p className="text-[10px] uppercase tracking-[0.2em] text-cyan-400 font-bold">Workspace</p>
+                            <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+                                Notes <span className="text-white/20">/</span> <span className="text-white/60 text-base font-normal">{notebooks.find(n => n.id === selectedNotebookId)?.name || 'Select Notebook'}</span>
+                            </h1>
                         </div>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                        {user && (
+                            <div className="flex items-center gap-3 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                <span className="text-xs font-medium text-slate-300">
+                                    {firstName}
+                                </span>
+                            </div>
+                        )}
                         <button
                             onClick={handleSignOut}
-                            className="px-4 py-2 rounded-full border border-red-400/30 text-red-300 text-xs font-bold uppercase tracking-wide bg-red-500/5 backdrop-blur-md hover:bg-red-500/15 hover:border-red-400/50 hover:text-red-200 transition-all duration-300"
+                            className="p-2 rounded-full hover:bg-red-500/10 text-slate-400 hover:text-red-400 transition-colors"
+                            title="Sign Out"
                         >
-                            Sign out
+                            <LogOut size={18} />
                         </button>
                     </div>
-                )}
-            </header>
+                </header>
 
-            {/* Main Content Area */}
-            <main className="relative z-10 flex-1 flex flex-col md:flex-row overflow-hidden bg-[#0f1115]/30">
+                {/* Content Grid */}
+                <main className="flex-1 p-6 pt-2 overflow-hidden flex gap-6">
 
-                {/* LEFT COLUMN: Notebooks List */}
-                <aside className="w-full md:w-[250px] lg:w-[280px] flex-none flex flex-col border-b md:border-b-0 md:border-r border-white/5 bg-[#0f1115]/60 backdrop-blur-sm z-20">
-                    <div className="p-4 border-b border-white/5 flex items-center justify-between">
-                        <h2 className="text-xs uppercase tracking-widest text-slate-400 font-bold">Notebooks</h2>
-                        <button
-                            onClick={() => setIsCreatingNotebook(true)}
-                            className="text-cyan-400 hover:text-cyan-300 transition-colors"
-                            title="Create Notebook"
-                        >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                        </button>
-                    </div>
-
-                    {isCreatingNotebook && (
-                        <form onSubmit={handleCreateNotebook} className="p-2 border-b border-white/5 bg-white/5">
-                            <input
-                                autoFocus
-                                type="text"
-                                value={newNotebookName}
-                                onChange={(e) => setNewNotebookName(e.target.value)}
-                                placeholder="Notebook Name..."
-                                className="w-full bg-transparent text-sm text-white placeholder-slate-500 focus:outline-none mb-2"
-                                onBlur={() => { if (!newNotebookName) setIsCreatingNotebook(false) }}
-                            />
-                            <div className="flex justify-end gap-2">
-                                <button type="button" onClick={() => setIsCreatingNotebook(false)} className="text-[10px] uppercase text-slate-400 hover:text-white">Cancel</button>
-                                <button type="submit" disabled={!newNotebookName} className="text-[10px] uppercase text-cyan-400 hover:text-cyan-300 font-bold">Create</button>
+                    {/* LEFT PANEL: Notebooks */}
+                    <motion.aside
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="w-[260px] flex-none flex flex-col gap-4"
+                    >
+                        {/* Notebook Actions */}
+                        <div className="p-4 rounded-2xl bg-black/40 backdrop-blur-xl border border-white/10 shadow-2xl flex flex-col gap-4">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">Notebooks</h2>
+                                <button
+                                    onClick={() => setIsCreatingNotebook(true)}
+                                    className="text-cyan-400 hover:text-cyan-300 transition-transform hover:scale-110"
+                                >
+                                    <Plus size={18} />
+                                </button>
                             </div>
-                        </form>
-                    )}
 
-                    <div className="flex-1 overflow-y-auto custom-scrollbar">
-                        {isLoadingNotebooks ? (
-                            <div className="p-4 text-center text-slate-500 text-xs">Loading notebooks...</div>
-                        ) : (
-                            <ul className="flex flex-col">
-                                {notebooks.map((nb) => (
-                                    <li key={nb.id} className="group relative">
-                                        {editingNotebookId === nb.id ? (
-                                            <form onSubmit={handleUpdateNotebook} className="p-3 bg-white/5">
-                                                <input
-                                                    autoFocus
-                                                    type="text"
-                                                    value={editingNotebookName}
-                                                    onChange={(e) => setEditingNotebookName(e.target.value)}
-                                                    className="w-full bg-transparent text-sm text-white focus:outline-none"
-                                                    onBlur={() => setEditingNotebookId(null)}
-                                                />
-                                            </form>
-                                        ) : (
-                                            <button
-                                                onClick={() => setSelectedNotebookId(nb.id)}
-                                                className={`w-full text-left p-3 text-sm font-medium transition-colors flex items-center justify-between ${selectedNotebookId === nb.id ? "bg-cyan-500/10 text-cyan-400 border-r-2 border-cyan-400" : "text-slate-400 hover:text-white hover:bg-white/5"}`}
-                                            >
-                                                <span className="truncate pr-2">{nb.name}</span>
-                                                {selectedNotebookId === nb.id && (
-                                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <span
-                                                            onClick={(e) => { e.stopPropagation(); setEditingNotebookId(nb.id); setEditingNotebookName(nb.name); }}
-                                                            className="p-1 hover:text-white cursor-pointer" title="Rename"
-                                                        >
-                                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                                                        </span>
-                                                        <span
-                                                            onClick={(e) => handleDeleteNotebook(nb.id, e)}
-                                                            className="p-1 hover:text-red-400 cursor-pointer" title="Delete"
-                                                        >
-                                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
-                                                        </span>
-                                                    </div>
-                                                )}
-                                            </button>
-                                        )}
-                                    </li>
-                                ))}
-                                {notebooks.length === 0 && !isCreatingNotebook && (
-                                    <div className="p-4 text-center text-slate-600 text-xs italic">No notebooks yet. Create one!</div>
+                            {/* Create Notebook Input */}
+                            <AnimatePresence>
+                                {isCreatingNotebook && (
+                                    <motion.form
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: "auto", opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        onSubmit={handleCreateNotebook}
+                                        className="overflow-hidden"
+                                    >
+                                        <input
+                                            autoFocus
+                                            type="text"
+                                            value={newNotebookName}
+                                            onChange={(e) => setNewNotebookName(e.target.value)}
+                                            placeholder="Name..."
+                                            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-colors mb-2"
+                                            onBlur={() => { if (!newNotebookName) setIsCreatingNotebook(false) }}
+                                        />
+                                    </motion.form>
                                 )}
-                            </ul>
-                        )}
-                    </div>
-                </aside>
+                            </AnimatePresence>
+                        </div>
 
-
-                {/* MIDDLE: Notes List */}
-                <aside className={`w-full md:w-[250px] lg:w-[300px] flex-none flex flex-col border-b md:border-b-0 md:border-r border-white/5 bg-[#0f1115]/40 backdrop-blur-sm ${!selectedNotebookId ? 'opacity-50 pointer-events-none' : ''}`}>
-                    <div className="p-4 border-b border-white/5">
-                        <button
-                            onClick={handleCreateNote}
-                            disabled={!selectedNotebookId}
-                            className="w-full py-2.5 px-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-lg font-semibold shadow-lg shadow-purple-900/20 transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <span>+</span> Create New Note
-                        </button>
-                    </div>
-
-
-
-
-                    // ... (inside return)
-                    <div className="flex-1 relative" ref={containerRef}>
-                        {isLoadingNotes ? (
-                            <div className="text-center text-slate-500 text-xs mt-4">Loading notes...</div>
-                        ) : notes.length === 0 ? (
-                            <div className="text-center text-slate-600 text-xs mt-4">No notes in this notebook.</div>
-                        ) : (
-                            <List
-                                height={height}
-                                width={width}
-                                itemCount={notes.length}
-                                itemSize={80} // Estimated height details + title
-                                itemData={itemData}
-                            >
-                                {({ index, style, data }) => {
-                                    const note = data.notes[index];
-                                    return (
-                                        <div style={style}>
-                                            <div
-                                                className={`group w-full text-left p-3 rounded-xl transition-all duration-200 border border-transparent cursor-pointer relative ${data.selectedNoteId === note.id ? "bg-white/10 text-white border-white/5 shadow-sm" : "text-slate-400 hover:text-white hover:bg-white/5"}`}
-                                                onClick={() => data.setSelectedNoteId(note.id)}
-                                            >
-                                                <p className="font-semibold truncate text-sm pr-6">{note.title || "Untitled"}</p>
-                                                <p className="text-[10px] text-slate-500 mt-1 truncate">{note.content ? note.content.substring(0, 30) + "..." : "No content"}</p>
-
+                        {/* Notebook List */}
+                        <div className="flex-1 rounded-2xl bg-black/40 backdrop-blur-xl border border-white/10 shadow-2xl overflow-hidden flex flex-col">
+                            <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
+                                {isLoadingNotebooks ? (
+                                    <div className="p-4 text-center text-slate-500 text-xs">Loading...</div>
+                                ) : (
+                                    notebooks.map((nb) => (
+                                        <div key={nb.id} className="relative group">
+                                            {editingNotebookId === nb.id ? (
+                                                <form onSubmit={handleUpdateNotebook} className="p-2">
+                                                    <input
+                                                        autoFocus
+                                                        value={editingNotebookName}
+                                                        onChange={(e) => setEditingNotebookName(e.target.value)}
+                                                        className="w-full bg-white/10 rounded px-2 py-1 text-sm text-white focus:outline-none"
+                                                        onBlur={() => setEditingNotebookId(null)}
+                                                    />
+                                                </form>
+                                            ) : (
                                                 <button
-                                                    onClick={(e) => data.handleDeleteNote(note.id, e)}
-                                                    className="absolute top-2 right-2 p-1 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    title="Delete Note"
+                                                    onClick={() => setSelectedNotebookId(nb.id)}
+                                                    className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 flex items-center justify-between group-hover:bg-white/5 ${selectedNotebookId === nb.id
+                                                        ? "bg-cyan-500/10 text-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.1)]"
+                                                        : "text-slate-400"
+                                                        }`}
                                                 >
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                                                    <div className="flex items-center gap-3 overflow-hidden">
+                                                        <Book size={14} className={selectedNotebookId === nb.id ? "text-cyan-400" : "text-slate-500"} />
+                                                        <span className="truncate">{nb.name}</span>
+                                                    </div>
                                                 </button>
-                                            </div>
-                                        </div>
-                                    );
-                                }}
-                            </List>
-                        )}
-                    </div>
-                </aside>
+                                            )}
 
-                {/* RIGHT: Editor Area */}
-                <section className="flex-1 flex flex-col min-h-0 bg-transparent relative">
-                    {selectedNoteId ? (
-                        <>
-                            <div className="flex-none p-6 md:p-8 border-b border-white/5 bg-[#0f1115]/20 backdrop-blur-sm">
+                                            {selectedNotebookId === nb.id && (
+                                                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 backdrop-blur-sm rounded-lg p-1">
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); setEditingNotebookId(nb.id); setEditingNotebookName(nb.name); }}
+                                                        className="p-1.5 hover:bg-white/10 rounded-md text-slate-400 hover:text-white transition-colors"
+                                                    >
+                                                        <Edit2 size={12} />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => handleDeleteNotebook(nb.id, e)}
+                                                        className="p-1.5 hover:bg-red-500/20 rounded-md text-slate-400 hover:text-red-400 transition-colors"
+                                                    >
+                                                        <Trash2 size={12} />
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </motion.aside>
+
+                    {/* MIDDLE PANEL: Notes List */}
+                    <motion.aside
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className={`w-[280px] flex-none flex flex-col rounded-2xl bg-black/40 backdrop-blur-xl border border-white/10 shadow-2xl overflow-hidden ${!selectedNotebookId ? 'opacity-50 pointer-events-none grayscale' : ''}`}
+                    >
+                        <div className="p-4 border-b border-white/5 flex flex-col gap-3">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
                                 <input
                                     type="text"
-                                    value={activeNoteTitle}
-                                    onChange={(e) => setActiveNoteTitle(e.target.value)}
-                                    className="w-full bg-transparent text-3xl md:text-4xl font-bold text-white placeholder-slate-600 focus:outline-none tracking-tight"
-                                    placeholder="Note Title"
-                                />
-                                <div className="text-xs text-slate-500 mt-3 flex items-center gap-3 font-medium">
-                                    {lastSaved ? (
-                                        <span className="bg-white/5 px-2 py-1 rounded text-emerald-400/80">Saved {lastSaved.toLocaleTimeString()}</span>
-                                    ) : (
-                                        <span className="bg-white/5 px-2 py-1 rounded text-slate-400">Unsaved changes...</span>
-                                    )}
-                                    <span>•</span>
-                                    <span>{charCount} characters (Text Only)</span>
-                                </div>
-                            </div>
-
-                            <div className="flex-1 relative overflow-hidden flex flex-col">
-                                <RichTextEditor
-                                    content={activeNoteContent}
-                                    onChange={setActiveNoteContent}
-                                    className="w-full h-full border-0 rounded-none bg-transparent"
+                                    placeholder="Search notes..."
+                                    className="w-full bg-white/5 border border-white/5 rounded-xl py-2 pl-9 pr-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:bg-white/10 transition-colors"
                                 />
                             </div>
-                        </>
-                    ) : (
-                        <div className="flex-1 flex items-center justify-center text-slate-600 flex-col gap-4">
-                            <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
-                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                            </div>
-                            <p>Select a note to view or edit</p>
+                            <button
+                                onClick={handleCreateNote}
+                                disabled={!selectedNotebookId}
+                                className="w-full py-2.5 px-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl font-semibold shadow-lg shadow-cyan-900/20 transition-all flex items-center justify-center gap-2 text-sm"
+                            >
+                                <Plus size={16} /> <span>New Note</span>
+                            </button>
                         </div>
-                    )}
-                </section>
-            </main>
+
+                        <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2 relative" ref={containerRef}>
+                            {isLoadingNotes ? (
+                                <div className="text-center text-slate-500 text-xs mt-8">Loading notes...</div>
+                            ) : notes.length === 0 ? (
+                                <div className="text-center text-slate-600 text-xs mt-8 flex flex-col items-center gap-2">
+                                    <FileText size={24} className="opacity-20" />
+                                    <span>No notes found</span>
+                                </div>
+                            ) : (
+                                notes.map((note) => (
+                                    <div
+                                        key={note.id}
+                                        onClick={() => setSelectedNoteId(note.id)}
+                                        className={`group relative p-3 rounded-xl cursor-pointer transition-all duration-200 border ${selectedNoteId === note.id
+                                            ? "bg-white/10 border-white/10 shadow-lg"
+                                            : "border-transparent hover:bg-white/5 hover:border-white/5"
+                                            }`}
+                                    >
+                                        <h3 className={`font-semibold text-sm mb-1 truncate ${selectedNoteId === note.id ? 'text-white' : 'text-slate-300'}`}>
+                                            {note.title || "Untitled Note"}
+                                        </h3>
+                                        <p className="text-[10px] text-slate-500 line-clamp-2">
+                                            {note.content?.replace(/<[^>]*>/g, '') || "No content"}
+                                        </p>
+
+                                        <button
+                                            onClick={(e) => handleDeleteNote(note.id, e)}
+                                            className="absolute top-2 right-2 p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                                        >
+                                            <Trash2 size={12} />
+                                        </button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </motion.aside>
+
+                    {/* RIGHT PANEL: Editor */}
+                    <motion.section
+                        initial={{ opacity: 0, scale: 0.98 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.2 }}
+                        className="flex-1 flex flex-col min-h-0 rounded-2xl bg-black/40 backdrop-blur-xl border border-white/10 shadow-2xl relative overflow-hidden"
+                    >
+                        {selectedNoteId ? (
+                            <>
+                                {/* Editor Header */}
+                                <div className="flex-none px-8 py-6 border-b border-white/5">
+                                    <input
+                                        type="text"
+                                        value={activeNoteTitle}
+                                        onChange={(e) => setActiveNoteTitle(e.target.value)}
+                                        className="w-full bg-transparent text-3xl font-bold text-white placeholder-slate-600 focus:outline-none tracking-tight"
+                                        placeholder="Untitled Note"
+                                    />
+                                    <div className="flex items-center gap-4 mt-3 text-xs text-slate-500 font-medium tracking-wide">
+                                        <span className="flex items-center gap-1.5">
+                                            <div className={`w-1.5 h-1.5 rounded-full ${lastSaved ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`} />
+                                            {lastSaved ? `Saved ${lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Unsaved changes'}
+                                        </span>
+                                        <span className="w-1 h-1 rounded-full bg-slate-700" />
+                                        <span>{charCount} chars</span>
+                                    </div>
+                                </div>
+
+                                {/* Editor Content */}
+                                <div className="flex-1 relative overflow-hidden">
+                                    <RichTextEditor
+                                        content={activeNoteContent}
+                                        onChange={setActiveNoteContent}
+                                        className="w-full h-full border-none bg-transparent"
+                                    />
+                                </div>
+                            </>
+                        ) : (
+                            <div className="flex-1 flex flex-col items-center justify-center text-slate-500 gap-4 opacity-50">
+                                <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center">
+                                    <FileText size={40} strokeWidth={1} />
+                                </div>
+                                <p className="text-sm font-medium tracking-widest uppercase">Select a note to begin</p>
+                            </div>
+                        )}
+                    </motion.section>
+
+                </main>
+            </div>
         </div>
     );
 }

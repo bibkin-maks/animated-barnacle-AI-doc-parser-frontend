@@ -8,35 +8,17 @@ import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+// import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import {
+    Bold, Italic, Strikethrough, Heading1, Heading2, List,
+    Table as TableIcon, Calendar, Columns, Rows, Trash2,
+    BarChart2, Download, Plus
+} from 'lucide-react';
 
-// Custom extension to handle cell background colors if not natively supported easily
-// Actually, TextStyle + Color usually works for text. For Cell background, we need a custom attribute.
-// For now, let's stick to text color or simple implementation. 
-// Note: Tiptap doesn't have a direct "Cell Background" extension in the free tier easily accessible without custom code.
-// We will focus on Tables and Graphs primarily.
-
-const MenuBar = ({ editor, onExportCSV, onVisualize, onStatsChange }) => {
+const MenuBar = ({ editor, onExportCSV, onVisualize }) => {
     if (!editor) {
         return null;
     }
-
-    const insertCalendar = () => {
-        editor.chain().focus()
-            .insertTable({ rows: 4, cols: 5, withHeaderRow: true })
-            .run();
-
-        // We need to wait for the table to be inserted to populate headers, 
-        // but simple chain commands might not allow easy cell content insertion immediately by coordinates.
-        // A simpler way is to insert HTML table or just let the user fill it.
-        // However, we can try to set content using chain commands if focused.
-        // For simplicity providing a structured empty table is often enough, but let's try to label headers.
-        // Actually, let's keep it simple: Just a 4x5 table is a "Calendar Grid".
-        // Better yet: Insert HTML content for the table.
-
-        // This functionality is complex to structure perfectly via API, but let's try a snippet.
-        // editor.chain().focus().insertContent(...)
-    };
 
     const insertNotionCalendar = () => {
         editor.chain().focus().insertContent(`
@@ -63,13 +45,6 @@ const MenuBar = ({ editor, onExportCSV, onVisualize, onStatsChange }) => {
                   <td><p></p></td>
                   <td><p></p></td>
                 </tr>
-                 <tr>
-                  <td><p></p></td>
-                  <td><p></p></td>
-                  <td><p></p></td>
-                  <td><p></p></td>
-                  <td><p></p></td>
-                </tr>
               </tbody>
             </table>
         `).run();
@@ -77,104 +52,103 @@ const MenuBar = ({ editor, onExportCSV, onVisualize, onStatsChange }) => {
 
 
     return (
-        <div className="flex flex-wrap items-center gap-2 p-3 border-b border-white/10 bg-white/5 backdrop-blur-md sticky top-0 z-20">
+        <div className="flex flex-wrap items-center gap-1 p-2 m-2 mb-0 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 shadow-lg sticky top-2 z-20">
             {/* Basic Formatting */}
-            <div className="flex items-center gap-1 border-r border-white/10 pr-2">
+            <div className="flex items-center gap-0.5 border-r border-white/10 pr-2 mr-2">
                 <button
                     onClick={() => editor.chain().focus().toggleBold().run()}
                     disabled={!editor.can().chain().focus().toggleBold().run()}
-                    className={`p-1.5 rounded hover:bg-white/10 ${editor.isActive('bold') ? 'text-cyan-400 bg-white/10' : 'text-slate-300'}`}
+                    className={`p-1.5 rounded-lg transition-colors ${editor.isActive('bold') ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
                     title="Bold"
                 >
-                    <BIcon />
+                    <Bold size={16} />
                 </button>
                 <button
                     onClick={() => editor.chain().focus().toggleItalic().run()}
                     disabled={!editor.can().chain().focus().toggleItalic().run()}
-                    className={`p-1.5 rounded hover:bg-white/10 ${editor.isActive('italic') ? 'text-cyan-400 bg-white/10' : 'text-slate-300'}`}
+                    className={`p-1.5 rounded-lg transition-colors ${editor.isActive('italic') ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
                     title="Italic"
                 >
-                    <IIcon />
+                    <Italic size={16} />
                 </button>
                 <button
                     onClick={() => editor.chain().focus().toggleStrike().run()}
                     disabled={!editor.can().chain().focus().toggleStrike().run()}
-                    className={`p-1.5 rounded hover:bg-white/10 ${editor.isActive('strike') ? 'text-cyan-400 bg-white/10' : 'text-slate-300'}`}
+                    className={`p-1.5 rounded-lg transition-colors ${editor.isActive('strike') ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
                     title="Strike"
                 >
-                    <SIcon />
+                    <Strikethrough size={16} />
                 </button>
             </div>
 
             {/* Headings */}
-            <div className="flex items-center gap-1 border-r border-white/10 pr-2">
+            <div className="flex items-center gap-0.5 border-r border-white/10 pr-2 mr-2">
                 <button
                     onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-                    className={`p-1.5 rounded hover:bg-white/10 ${editor.isActive('heading', { level: 1 }) ? 'text-cyan-400 bg-white/10' : 'text-slate-300'}`}
+                    className={`p-1.5 rounded-lg transition-colors ${editor.isActive('heading', { level: 1 }) ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
                     title="H1"
                 >
-                    <H1Icon />
+                    <Heading1 size={16} />
                 </button>
                 <button
                     onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-                    className={`p-1.5 rounded hover:bg-white/10 ${editor.isActive('heading', { level: 2 }) ? 'text-cyan-400 bg-white/10' : 'text-slate-300'}`}
+                    className={`p-1.5 rounded-lg transition-colors ${editor.isActive('heading', { level: 2 }) ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
                     title="H2"
                 >
-                    <H2Icon />
+                    <Heading2 size={16} />
                 </button>
                 <button
                     onClick={() => editor.chain().focus().toggleBulletList().run()}
-                    className={`p-1.5 rounded hover:bg-white/10 ${editor.isActive('bulletList') ? 'text-cyan-400 bg-white/10' : 'text-slate-300'}`}
+                    className={`p-1.5 rounded-lg transition-colors ${editor.isActive('bulletList') ? 'bg-cyan-500/20 text-cyan-400' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}
                     title="Bullet List"
                 >
-                    <ListIcon />
+                    <List size={16} />
                 </button>
             </div>
 
             {/* Tables */}
-            <div className="flex items-center gap-1 border-r border-white/10 pr-2">
+            <div className="flex items-center gap-0.5 border-r border-white/10 pr-2 mr-2">
                 <button
                     onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
-                    disabled={editor.isActive('table')} // Prevent nested tables
-                    className="p-1.5 rounded hover:bg-white/10 text-slate-300 hover:text-cyan-400 disabled:opacity-30 disabled:hover:text-slate-300 disabled:cursor-not-allowed"
+                    disabled={editor.isActive('table')}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
                     title="Insert Table"
                 >
-                    <TableIcon />
+                    <TableIcon size={16} />
                 </button>
 
-                {/* Notion Calendar Button */}
                 <button
                     onClick={insertNotionCalendar}
-                    disabled={editor.isActive('table')} // Prevent nested
-                    className="p-1.5 rounded hover:bg-white/10 text-slate-300 hover:text-purple-400 disabled:opacity-30 disabled:hover:text-slate-300 disabled:cursor-not-allowed"
+                    disabled={editor.isActive('table')}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-purple-400 hover:bg-purple-500/10 disabled:opacity-30 disabled:cursor-not-allowed"
                     title="Insert Calendar / Tracker"
                 >
-                    <CalendarIcon />
+                    <Calendar size={16} />
                 </button>
 
                 <button
                     onClick={() => editor.chain().focus().addColumnAfter().run()}
                     disabled={!editor.can().addColumnAfter()}
-                    className="p-1.5 rounded hover:bg-white/10 text-slate-300 disabled:opacity-30"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 disabled:opacity-30"
                     title="Add Column"
                 >
-                    <ColPlusIcon />
+                    <Columns size={16} />
                 </button>
                 <button
                     onClick={() => editor.chain().focus().addRowAfter().run()}
                     disabled={!editor.can().addRowAfter()}
-                    className="p-1.5 rounded hover:bg-white/10 text-slate-300 disabled:opacity-30"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 disabled:opacity-30"
                     title="Add Row"
                 >
-                    <RowPlusIcon />
+                    <Rows size={16} />
                 </button>
                 <button
                     onClick={() => editor.chain().focus().deleteTable().run()}
                     disabled={!editor.can().deleteTable()}
-                    className="p-1.5 rounded hover:bg-white/10 text-slate-300 hover:text-red-400 disabled:opacity-30"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 disabled:opacity-30"
                     title="Delete Table"
                 >
-                    <TrashIcon />
+                    <Trash2 size={16} />
                 </button>
             </div>
 
@@ -182,15 +156,15 @@ const MenuBar = ({ editor, onExportCSV, onVisualize, onStatsChange }) => {
             <div className="flex items-center gap-2 ml-auto">
                 <button
                     onClick={onVisualize}
-                    className="px-3 py-1.5 rounded bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 text-xs font-bold uppercase tracking-wide flex items-center gap-1"
+                    className="px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-[10px] font-bold uppercase tracking-wide flex items-center gap-1.5 border border-emerald-500/20"
                 >
-                    <GraphIcon /> Visualize
+                    <BarChart2 size={14} /> Visualize
                 </button>
                 <button
                     onClick={onExportCSV}
-                    className="px-3 py-1.5 rounded bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 text-xs font-bold uppercase tracking-wide flex items-center gap-1"
+                    className="px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 text-[10px] font-bold uppercase tracking-wide flex items-center gap-1.5 border border-blue-500/20"
                 >
-                    <DownloadIcon /> Export CSV
+                    <Download size={14} /> CSV
                 </button>
             </div>
         </div>
@@ -220,11 +194,10 @@ const RichTextEditor = ({ content, onChange, onStatsChange, className = "" }) =>
         onUpdate: ({ editor }) => {
             onChange(editor.getHTML());
 
-            // Calculate Character Count EXCLUDING tables
             let charCount = 0;
             editor.state.doc.descendants((node) => {
                 if (node.type.name === 'table') {
-                    return false; // Skip traversing into tables
+                    return false;
                 }
                 if (node.isText) {
                     charCount += node.text.length;
@@ -238,17 +211,13 @@ const RichTextEditor = ({ content, onChange, onStatsChange, className = "" }) =>
         },
         editorProps: {
             attributes: {
-                class: 'prose prose-invert max-w-none focus:outline-none min-h-[300px] p-4',
+                class: 'prose prose-invert max-w-none focus:outline-none min-h-[calc(100vh-250px)] p-6 md:p-10',
             },
         },
     });
 
-    // Helper: Parse the first table found in the editor to JSON for graphs/CSV
     const parseTableData = useCallback(() => {
         if (!editor) return null;
-
-        // This is a naive implementation that grabs the first table
-        // A better way would be to get the *selected* table or prompt user
         const html = editor.getHTML();
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
@@ -262,14 +231,12 @@ const RichTextEditor = ({ content, onChange, onStatsChange, className = "" }) =>
         const rows = Array.from(table.querySelectorAll('tr'));
         if (rows.length < 2) return null;
 
-        // Assume first row is headers
         const headers = Array.from(rows[0].querySelectorAll('th, td')).map(cell => cell.textContent.trim());
         const data = rows.slice(1).map(row => {
             const cells = Array.from(row.querySelectorAll('td'));
             const obj = {};
             headers.forEach((header, i) => {
                 const cellText = cells[i]?.textContent?.trim();
-                // Try to convert to number if possible
                 const num = parseFloat(cellText);
                 obj[header] = isNaN(num) ? cellText : num;
             });
@@ -307,131 +274,96 @@ const RichTextEditor = ({ content, onChange, onStatsChange, className = "" }) =>
     };
 
     return (
-        <div className={`flex flex-col border border-white/10 rounded-xl bg-[#0f1115]/40 backdrop-blur-sm overflow-hidden ${className}`}>
+        <div className={`flex flex-col h-full bg-transparent ${className}`}>
             <MenuBar editor={editor} onVisualize={handleVisualize} onExportCSV={handleExportCSV} />
-            <div className="flex-1 overflow-y-auto custom-scrollbar bg-transparent">
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
                 <EditorContent editor={editor} />
             </div>
 
-            {/* Graph Modal */}
+            {/* Graph Modal - Disabled for build check */}
             {showGraphModal && graphData && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="w-full max-w-4xl bg-[#1a1d24] border border-white/10 rounded-2xl p-6 shadow-2xl relative flex flex-col max-h-[90vh]">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+                    <div className="w-full max-w-4xl bg-[#1a1d24] border border-white/10 rounded-2xl p-6 shadow-2xl relative flex flex-col h-[500px]">
                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-bold text-white">Data Visualization</h3>
-                            <button onClick={() => setShowGraphModal(false)} className="text-slate-400 hover:text-white">Close</button>
+                            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                <BarChart2 size={20} className="text-cyan-400" /> Data Visualization
+                            </h3>
+                            <button onClick={() => setShowGraphModal(false)} className="p-2 hover:bg-white/10 rounded-full text-slate-400 hover:text-white transition-colors">
+                                <Plus size={20} className="rotate-45" />
+                            </button>
                         </div>
 
-                        <div className="flex-1 min-h-[400px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={graphData.data}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                                    <XAxis dataKey={graphData.headers[0]} stroke="#94a3b8" />
-                                    <YAxis stroke="#94a3b8" />
-                                    <Tooltip
-                                        contentStyle={{ backgroundColor: '#0f1115', border: '1px solid #333' }}
-                                        itemStyle={{ color: '#fff' }}
-                                    />
-                                    <Legend />
-                                    {graphData.headers.slice(1).map((header, index) => (
-                                        <Bar
-                                            key={header}
-                                            dataKey={header}
-                                            fill={['#3b82f6', '#8b5cf6', '#ec4899', '#10b981'][index % 4]}
-                                            radius={[4, 4, 0, 0]}
-                                        />
-                                    ))}
-                                </BarChart>
-                            </ResponsiveContainer>
+                        <div className="flex-1 min-h-[300px] flex items-center justify-center text-slate-500">
+                            Graphs Temporarily Disabled due to Recharts Build Error
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Styles for Table (Global or Scoped) */}
             <style>{`
                 .ProseMirror {
                      min-height: 100%;
                 }
                 .ProseMirror table {
-                    border-collapse: collapse;
+                    border-collapse: separate;
+                    border-spacing: 0;
                     width: 100%;
-                    margin: 1em 0;
+                    margin: 1.5em 0;
                     overflow: hidden;
                     table-layout: fixed;
+                    border-radius: 8px;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    background: rgba(0, 0, 0, 0.2);
                 }
                 .ProseMirror td, .ProseMirror th {
-                    border: 1px solid rgba(255, 255, 255, 0.2);
-                    padding: 8px;
+                    border: 1px solid rgba(255, 255, 255, 0.05);
+                    padding: 10px;
                     vertical-align: top;
                     box-sizing: border-box;
                     position: relative;
                 }
                 .ProseMirror th {
                     background-color: rgba(255, 255, 255, 0.05);
-                    font-weight: bold;
+                    font-weight: 600;
                     text-align: left;
+                    color: #e2e8f0;
                 }
                 .ProseMirror .selectedCell:after {
                     z-index: 2;
                     position: absolute;
                     content: "";
                     left: 0; right: 0; top: 0; bottom: 0;
-                    background: rgba(33, 150, 243, 0.15);
+                    background: rgba(34, 211, 238, 0.1);
                     pointer-events: none;
                 }
                  .ProseMirror ul, .ProseMirror ol {
                     padding-left: 1.5em;
                     list-style-type: disc;
                  }
-                 .ProseMirror h1 { font-size: 2em; font-weight: bold; margin-bottom: 0.5em; }
-                 .ProseMirror h2 { font-size: 1.5em; font-weight: bold; margin-bottom: 0.5em; }
+                 .ProseMirror h1 { font-size: 2.25em; font-weight: 800; margin-bottom: 0.5em; letter-spacing: -0.02em; color: white; }
+                 .ProseMirror h2 { font-size: 1.8em; font-weight: 700; margin-bottom: 0.5em; letter-spacing: -0.01em; color: #f1f5f9; }
+                 .ProseMirror p { margin-bottom: 0.75em; line-height: 1.7; color: #cbd5e1; }
+                 .ProseMirror a { color: #22d3ee; text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+                 .ProseMirror a:hover { border-bottom-color: #22d3ee; }
+                 
+                 /* Scrollbar for editor */
+                 .custom-scrollbar::-webkit-scrollbar {
+                    width: 6px;
+                 }
+                 .custom-scrollbar::-webkit-scrollbar-track {
+                    background: transparent;
+                 }
+                 .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: rgba(255, 255, 255, 0.1);
+                    border-radius: 3px;
+                 }
+                 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: rgba(255, 255, 255, 0.2);
+                 }
             `}</style>
         </div>
     );
 };
 
-// Icons (Simple SVGs)
-const BIcon = () => <span className="font-bold">B</span>;
-const IIcon = () => <span className="italic">I</span>;
-const SIcon = () => <span className="line-through">S</span>;
-const H1Icon = () => <span className="text-xs font-bold">H1</span>;
-const H2Icon = () => <span className="text-xs font-bold">H2</span>;
-const ListIcon = () => <span>•-</span>;
-const TableIcon = () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18" />
-    </svg>
-);
-const ColPlusIcon = () => <span>+|<span className="text-[10px]">Col</span></span>;
-const RowPlusIcon = () => <span>+_<span className="text-[10px]">Row</span></span>;
-const TrashIcon = () => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-    </svg>
-);
-const GraphIcon = () => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-        <path d="M8 12h8" />
-        <path d="M12 8v8" />
-    </svg>
-);
-const DownloadIcon = () => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-        <polyline points="7 10 12 15 17 10" />
-        <line x1="12" y1="15" x2="12" y2="3" />
-    </svg>
-);
-
-const CalendarIcon = () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-        <line x1="16" y1="2" x2="16" y2="6" />
-        <line x1="8" y1="2" x2="8" y2="6" />
-        <line x1="3" y1="10" x2="21" y2="10" />
-    </svg>
-);
-
 export default RichTextEditor;
+

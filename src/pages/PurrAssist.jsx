@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import useVantaGlobe from "../hooks/useVantaGlobe";
 import Sidebar from "../components/SideBar";
-import { useSignoutUserMutation } from "../slices/apiSlice";
+import { useSignoutMutation } from "../slices/apiSlice";
 
 import VoiceVisualizer from "../components/VoiceVisualizer";
 import useVoiceInput from "../hooks/useVoiceInput";
@@ -13,7 +13,7 @@ export default function PurrAssist() {
     const { user, token, logout } = useAuth();
     const navigate = useNavigate();
     // const vantaRef = useVantaGlobe();
-    const [signoutUser] = useSignoutUserMutation();
+    const [signoutUser] = useSignoutMutation();
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const toggleSidebar = useCallback(() => setIsSidebarOpen((s) => !s), []);

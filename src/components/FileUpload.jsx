@@ -1,12 +1,12 @@
 import { useDropzone } from "react-dropzone";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { useUploadFileMutation, useRemoveFileMutation } from "../slices/apiSlice";
+import { useUploadDocumentMutation, useRemoveDocumentMutation } from "../slices/apiSlice";
 
 export default function FileUpload({ className = "", showAskQuestion = true, navigateTo = "" }) {
   const { user, refreshUser } = useAuth();
-  const [uploadFile] = useUploadFileMutation();
-  const [removeFile] = useRemoveFileMutation();
+  const [uploadDocument] = useUploadDocumentMutation();
+  const [removeDocument] = useRemoveDocumentMutation();
 
   const navigate = useNavigate();
 
@@ -19,7 +19,7 @@ export default function FileUpload({ className = "", showAskQuestion = true, nav
       const formData = new FormData();
       formData.append("file", file);
 
-      await uploadFile(formData);
+      await uploadDocument(formData);
       await refreshUser();
 
       if (navigateTo !== "") {
@@ -29,7 +29,7 @@ export default function FileUpload({ className = "", showAskQuestion = true, nav
   }
 
   const handleRemove = async () => {
-    await removeFile();
+    await removeDocument();
     await refreshUser();
   }
 

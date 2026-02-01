@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import useVantaGlobe from "../hooks/useVantaGlobe";
 import Sidebar from "../components/SideBar";
 import {
-    useSignoutUserMutation,
+    useSignoutMutation,
     useGetNotebooksQuery,
     useCreateNotebookMutation,
     useDeleteNotebookMutation,
@@ -26,7 +26,7 @@ export default function Notes() {
     // const vantaRef = useVantaGlobe();
 
     // Auth & Navigation
-    const [signoutUser] = useSignoutUserMutation();
+    const [signoutUser] = useSignoutMutation();
     const handleSignOut = async () => {
         if (!token) return;
         await signoutUser(JSON.stringify({ token }));

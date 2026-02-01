@@ -5,7 +5,7 @@ import ChatInterface from "../components/ChatInterface";
 import { useNavigate } from "react-router-dom";
 
 import useVantaGlobe from "../hooks/useVantaGlobe";
-import { useSignoutUserMutation } from "../slices/apiSlice";
+import { useSignoutMutation } from "../slices/apiSlice";
 
 import Sidebar from "../components/SideBar";
 
@@ -18,7 +18,7 @@ const Chat = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const toggleSidebar = useCallback(() => setIsSidebarOpen((s) => !s), []);
 
-  const [signoutUser] = useSignoutUserMutation();
+  const [signoutUser] = useSignoutMutation();
   const navigate = useNavigate();
 
 

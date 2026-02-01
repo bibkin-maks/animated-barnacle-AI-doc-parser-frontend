@@ -174,10 +174,9 @@ export default function Main() {
   );
 
   return (
-    <div className="relative min-h-screen w-full font-montserrat overflow-x-hidden text-white selection:bg-purple-500/30">
+    <div className="relative min-h-screen w-full font-montserrat overflow-x-hidden text-white bg-transparent selection:bg-purple-500/30">
 
       {/* Backgrounds */}
-      {/* <div ref={vantaRef} className="fixed inset-0 pointer-events-none" /> */ /* REMOVED VANTA */}
 
       <div className="relative z-10 flex flex-col min-h-screen">
         <Navbar onLogin={handleLogin} isAuthed={isAuthed} user={user} />

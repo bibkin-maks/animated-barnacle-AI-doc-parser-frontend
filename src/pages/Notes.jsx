@@ -1,8 +1,10 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { FixedSizeList as List } from "react-window";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import useVantaGlobe from "../hooks/useVantaGlobe";
+import useResizeObserver from "../hooks/useResizeObserver";
 import Sidebar from "../components/SideBar";
 import {
     useSignoutMutation,
@@ -16,6 +18,8 @@ import {
     useDeleteNoteMutation
 } from "../slices/apiSlice";
 
+
+
 import RichTextEditor from "../components/RichTextEditor";
 
 const DEBOUNCE_DELAY = 1000;
@@ -24,6 +28,7 @@ export default function Notes() {
     const { user, token, logout } = useAuth();
     const navigate = useNavigate();
     // const vantaRef = useVantaGlobe();
+    const [containerRef, { width, height }] = useResizeObserver();
 
     // Auth & Navigation
     const [signoutUser] = useSignoutMutation();
@@ -78,15 +83,6 @@ export default function Notes() {
 
     // Auto-save logic
     // ... (Existing useEffect for auto-save) ...
-
-    <div className="flex-1 relative overflow-hidden flex flex-col">
-        <RichTextEditor
-            content={activeNoteContent}
-            onChange={setActiveNoteContent}
-            onStatsChange={setCharCount}
-            className="w-full h-full border-0 rounded-none bg-transparent"
-        />
-    </div>
 
     // Handlers
     const handleCreateNotebook = async (e) => {
@@ -143,7 +139,7 @@ export default function Notes() {
         }
     };
 
-    const handleDeleteNote = async (id, e) => {
+    const handleDeleteNote = useCallback(async (id, e) => {
         e.stopPropagation();
         if (window.confirm("Delete this note?")) {
             try {
@@ -155,8 +151,15 @@ export default function Notes() {
                 console.error("Failed to delete note", error);
             }
         }
-    };
+    }, [deleteNote, selectedNoteId]);
 
+
+    const itemData = useMemo(() => ({
+        notes,
+        selectedNoteId,
+        setSelectedNoteId,
+        handleDeleteNote
+    }), [notes, selectedNoteId, handleDeleteNote]);
 
     const firstName = useMemo(
         () => user?.name?.split(" ")[0] || "there",
@@ -164,15 +167,10 @@ export default function Notes() {
     );
 
     return (
-        <div className="relative h-screen w-full overflow-hidden font-montserrat text-white selection:bg-purple-500/30 flex flex-col">
+        <div className="relative h-screen w-full overflow-hidden font-montserrat text-white bg-transparent selection:bg-purple-500/30 flex flex-col">
+            {/* Force Update: Fixed Background Reference */}
             <Sidebar isOpen={isSidebarOpen} onToggle={toggleSidebar} onPurrAssist={handlePurrAssist} />
 
-            {/* FIXED BACKGROUND */}
-            {/* <div ref={vantaRef} className="fixed inset-0 pointer-events-none" /> */ /* REMOVED VANTA */}
-            <div className="pointer-events-none fixed inset-0 -z-5">
-                <div className="absolute -top-40 -left-32 w-96 h-96 bg-purple-700 opacity-20 blur-[130px] rounded-full" />
-                <div className="absolute bottom-[-120px] right-[-60px] w-[420px] h-[420px] bg-cyan-500 opacity-15 blur-[150px] rounded-full" />
-            </div>
 
             {/* Top Header Bar */}
             <header className="relative z-10 flex-none h-16 w-full flex items-center justify-between px-4 lg:px-6 border-b border-white/5 bg-[#0f1115]/80 backdrop-blur-md">
@@ -317,30 +315,46 @@ export default function Notes() {
                         </button>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
+
+
+
+                    // ... (inside return)
+                    <div className="flex-1 relative" ref={containerRef}>
                         {isLoadingNotes ? (
                             <div className="text-center text-slate-500 text-xs mt-4">Loading notes...</div>
                         ) : notes.length === 0 ? (
                             <div className="text-center text-slate-600 text-xs mt-4">No notes in this notebook.</div>
                         ) : (
-                            notes.map((note) => (
-                                <div
-                                    key={note.id}
-                                    className={`group w-full text-left p-3 rounded-xl transition-all duration-200 border border-transparent cursor-pointer relative ${selectedNoteId === note.id ? "bg-white/10 text-white border-white/5 shadow-sm" : "text-slate-400 hover:text-white hover:bg-white/5"}`}
-                                    onClick={() => setSelectedNoteId(note.id)}
-                                >
-                                    <p className="font-semibold truncate text-sm pr-6">{note.title || "Untitled"}</p>
-                                    <p className="text-[10px] text-slate-500 mt-1 truncate">{note.content ? note.content.substring(0, 30) + "..." : "No content"}</p>
+                            <List
+                                height={height}
+                                width={width}
+                                itemCount={notes.length}
+                                itemSize={80} // Estimated height details + title
+                                itemData={itemData}
+                            >
+                                {({ index, style, data }) => {
+                                    const note = data.notes[index];
+                                    return (
+                                        <div style={style}>
+                                            <div
+                                                className={`group w-full text-left p-3 rounded-xl transition-all duration-200 border border-transparent cursor-pointer relative ${data.selectedNoteId === note.id ? "bg-white/10 text-white border-white/5 shadow-sm" : "text-slate-400 hover:text-white hover:bg-white/5"}`}
+                                                onClick={() => data.setSelectedNoteId(note.id)}
+                                            >
+                                                <p className="font-semibold truncate text-sm pr-6">{note.title || "Untitled"}</p>
+                                                <p className="text-[10px] text-slate-500 mt-1 truncate">{note.content ? note.content.substring(0, 30) + "..." : "No content"}</p>
 
-                                    <button
-                                        onClick={(e) => handleDeleteNote(note.id, e)}
-                                        className="absolute top-2 right-2 p-1 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        title="Delete Note"
-                                    >
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                                    </button>
-                                </div>
-                            ))
+                                                <button
+                                                    onClick={(e) => data.handleDeleteNote(note.id, e)}
+                                                    className="absolute top-2 right-2 p-1 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    title="Delete Note"
+                                                >
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                }}
+                            </List>
                         )}
                     </div>
                 </aside>

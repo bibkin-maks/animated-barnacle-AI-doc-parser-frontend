@@ -1,12 +1,69 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import { addUserMessage, addBotMessage, setMessages } from "../store/chatSlice";
 import { useAuth } from "../context/AuthContext";
-
-
 import { useSendMessageMutation } from "../slices/apiSlice";
+import { AnimatePresence, motion } from "framer-motion";
 
+// --- Styled Components / Sub-components ---
+
+const BotIcon = () => (
+  <div className="w-8 h-8 rounded-xl bg-[#1a1c23] border border-white/10 flex items-center justify-center shadow-lg flex-shrink-0">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-400">
+      <path d="M12 2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" />
+      <path d="M12 8v4" />
+      <path d="M12 14v8" />
+      <path d="M8 14h8" />
+      <path d="M16 18h2a2 2 0 0 1 2 2" />
+      <path d="M8 18H6a2 2 0 0 0-2 2" />
+    </svg>
+  </div>
+);
+
+const UserIcon = ({ letter = "U" }) => (
+  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-xs font-bold text-white shadow-lg flex-shrink-0">
+    {letter}
+  </div>
+);
+
+const MessageBubble = ({ message, userInitial }) => {
+  const isUser = message.sender === "user";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 15, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      className={`flex w-full ${isUser ? "justify-end" : "justify-start"} mb-6 group`}
+    >
+      <div className={`flex max-w-[85%] md:max-w-[75%] gap-4 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
+
+        {/* Avatar */}
+        <div className="mt-1">
+          {isUser ? <UserIcon letter={userInitial} /> : <BotIcon />}
+        </div>
+
+        {/* Bubble */}
+        <div className={`
+                    relative p-4 rounded-2xl text-sm leading-relaxed shadow-sm
+                    ${!isUser
+            ? "bg-[#1f2129]/80 backdrop-blur-md border border-white/5 text-slate-200 rounded-tl-none hover:bg-[#252830]/90 transition-colors"
+            : "bg-gradient-to-br from-cyan-600 to-blue-600 text-white rounded-tr-none shadow-cyan-900/20 shadow-lg"}
+                `}>
+          {message.text}
+
+          {/* Timestamp */}
+          <div className={`
+                        absolute -bottom-5 text-[9px] text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap font-medium tracking-wide
+                        ${!isUser ? "left-0" : "right-0"}
+                    `}>
+            Just now
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
 
 const ChatInterface = ({ documentName }) => {
   const dispatch = useDispatch();
@@ -15,21 +72,16 @@ const ChatInterface = ({ documentName }) => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const { token, user } = useAuth(); // added logout (optional)
-
-  const [sendMessage, { isSending, sendingErr }] = useSendMessageMutation();
+  const { token, user, logout } = useAuth();
+  const [sendMessage] = useSendMessageMutation();
 
   const chatRef = useRef(null);
+  const messagesEndRef = useRef(null);
 
+  // Sync with Auth Context
   useEffect(() => {
-    if (!user) {
-      // user logged out
-      dispatch(setMessages([]));
-      return;
-    }
-
-    if (!user.messages) {
-      dispatch(setMessages([]));
+    if (!user || !user.messages) {
+      if (messages.length > 0) dispatch(setMessages([]));
       return;
     }
 
@@ -39,59 +91,35 @@ const ChatInterface = ({ documentName }) => {
       sender: m.role.toLowerCase() === "ai" ? "bot" : "user",
     }));
 
-    const reduxCount = messages.length;
-    const dbCount = formatted.length;
-
-    // 🟢 Detect account switch
-    if (messages.length > 0 && user._id !== window.lastUserId) {
+    // Prevent redundant updates
+    if (JSON.stringify(formatted) !== JSON.stringify(messages)) {
       dispatch(setMessages(formatted));
     }
+  }, [user, dispatch]); // Removed messages from dep to avoid loops, rely on logic
 
-    // 🟢 Detect DB updates
-    if (reduxCount !== dbCount) {
-      dispatch(setMessages(formatted));
-    }
-
-    // Save last used account
-    window.lastUserId = user._id;
-
-  }, [user?.messages, user?._id]);
-
-
-
-
+  // Auto-scroll
   useEffect(() => {
-    if (!user?.messages) return;
-
-    const formatted = user.messages.map((m, i) => ({
-      id: i + 1,
-      text: m.content,
-      sender: m.role.toLowerCase() === "ai" ? "bot" : "user",
-    }));
-
-    // only hydrate if Redux is empty
-    if (messages.length === 0) {
-      dispatch(setMessages(formatted));
-    }
-  }, [user]);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [messages, isLoading]);
 
   const handleSendMessage = useCallback(async () => {
     const text = input.trim();
     if (!text || isLoading) return;
 
+    // 1. Optimistic Update
+    const optimisticMessage = { id: Date.now(), text, sender: "user" };
+    // dispatch(addUserMessage(text)); // Let's wait for logic or dispatch immediately? 
+    // The previous logic dispatched immediately, let's stick to that for responsiveness
     dispatch(addUserMessage(text));
+
     setInput("");
     setIsLoading(true);
 
-
-
-
     try {
-      const response = await sendMessage({ question: text })
-
-      dispatch(addBotMessage(response.data.answer));
+      const response = await sendMessage({ question: text }).unwrap();
+      dispatch(addBotMessage(response.answer));
     } catch (err) {
-      if (err.response?.status === 401 || err.response?.status === 402) {
+      if (err.status === 401 || err.status === 402) {
         dispatch(setMessages([]));
         dispatch(addBotMessage("⚠️ Session expired. Please sign in again."));
         logout && logout();
@@ -101,69 +129,103 @@ const ChatInterface = ({ documentName }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, token]);
+  }, [input, isLoading, sendMessage, dispatch, logout]);
 
   return (
-    <div className="flex flex-col h-full w-full border-none relative bg-transparent">
+    <div className="flex flex-col h-full w-full relative">
 
-      <div
-        ref={chatRef}
-        className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 custom-scrollbar"
-      >
-        {messages.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-slate-200 gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-black/20 flex items-center justify-center backdrop-blur-md border border-white/10 shadow-lg">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6 custom-scrollbar scroll-smooth">
+        <div className="max-w-4xl mx-auto min-h-full flex flex-col justify-end pb-4">
+
+          {messages.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-200 opacity-60 select-none -mt-12">
+              <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-white/5 to-white/0 border border-white/5 flex items-center justify-center mb-6 shadow-2xl">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-slate-400">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-slate-300">
+                {documentName ? `Ask about "${documentName}"` : "Welcome to DocuChat"}
+              </h3>
+              <p className="text-xs text-slate-500 mt-2 max-w-xs text-center leading-relaxed">
+                Upload a document to the left to get started, or just say hello!
+              </p>
             </div>
-            <p className="font-medium tracking-wide text-sm drop-shadow-md">
-              {documentName ? `Discussing "${documentName}"` : "Start a conversation..."}
-            </p>
-          </div>
-        ) : (
-          messages.map((m) => (
-            <div
-              key={m.id}
-              className={`
-                px-5 py-3.5 rounded-2xl max-w-[85%] backdrop-blur-md shadow-md transition-all
-                ${m.sender === "user"
-                  ? "self-end bg-gradient-to-br from-cyan-600/40 to-blue-700/40 border border-cyan-400/40 text-white rounded-tr-sm"
-                  : "self-start bg-black/40 border border-white/10 text-white rounded-tl-sm"
-                }
-              `}
+          ) : (
+            <AnimatePresence initial={false}>
+              {messages.map((m) => (
+                <MessageBubble key={m.id} message={m} userInitial={user?.name?.[0]} />
+              ))}
+            </AnimatePresence>
+          )}
+
+          {/* Loading Indicator */}
+          {isLoading && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex justify-start mb-6 w-full"
             >
-              <p className="leading-relaxed text-sm font-normal drop-shadow-sm">{m.text}</p>
-            </div>
-          ))
-        )}
+              <div className="flex items-center gap-4">
+                <BotIcon />
+                <div className="bg-[#1f2129]/80 px-4 py-3 rounded-2xl rounded-tl-none border border-white/5 flex gap-1.5 items-center">
+                  <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <span className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
-      <div className="p-4 bg-black/20 backdrop-blur-xl border-t border-white/10">
-        <div className="flex items-center gap-3 max-w-4xl mx-auto w-full">
-          <input
-            className="flex-1 bg-black/20 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white placeholder-slate-300 focus:outline-none focus:border-cyan-400/50 focus:bg-black/30 transition-all font-normal shadow-inner"
-            placeholder="Type your message..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-          />
+      {/* Input Area */}
+      <div className="flex-none p-4 md:p-6 bg-[#0f1115]/80 backdrop-blur-xl border-t border-white/5 relative z-20">
+        <div className="max-w-4xl mx-auto w-full relative group">
 
-          <button
-            onClick={handleSendMessage}
-            disabled={!input.trim() || isLoading}
-            className={`
-              px-6 py-3.5 rounded-xl text-white text-sm font-bold tracking-wide transition-all shadow-lg
-              ${!input.trim() || isLoading
-                ? "bg-white/10 text-slate-400 cursor-not-allowed border border-white/5"
-                : "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 border border-cyan-400/30 shadow-cyan-900/40"
-              }
-            `}
-          >
-            {isLoading ? (
-              <span className="flex items-center gap-2">
-                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-              </span>
-            ) : "Send"}
-          </button>
+          <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 rounded-2xl blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
+          <div className="relative flex items-center gap-2 bg-[#13151b] border border-white/10 rounded-2xl p-2 shadow-2xl focus-within:ring-1 focus-within:ring-cyan-500/30 focus-within:border-cyan-500/50 transition-all duration-300">
+
+            <input
+              className="flex-1 bg-transparent border-none outline-none text-white placeholder-slate-500 text-sm md:text-base h-full py-2.5 px-3"
+              placeholder="Ask a question..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+              disabled={isLoading}
+            />
+
+            <button
+              onClick={handleSendMessage}
+              disabled={!input.trim() || isLoading} // Fixed logic: disabled if empty OR loading
+              className={`
+                  p-3 rounded-xl transition-all duration-300 flex-shrink-0
+                  ${input.trim() && !isLoading
+                  ? "bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/20 hover:scale-105 active:scale-95"
+                  : "bg-white/5 text-slate-500 cursor-not-allowed"}
+                `}
+            >
+              {isLoading ? (
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13" />
+                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                </svg>
+              )}
+            </button>
+          </div>
+
+          <div className="text-center mt-3">
+            <p className="text-[9px] text-slate-600 uppercase tracking-widest font-semibold">
+              AI Generated Content
+            </p>
+          </div>
+
         </div>
       </div>
     </div>

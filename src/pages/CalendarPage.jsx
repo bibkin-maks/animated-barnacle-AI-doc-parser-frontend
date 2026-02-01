@@ -31,7 +31,7 @@ const DnDCalendar = withDragAndDrop(Calendar);
 // CustomToolbar moved to src/components/calendar/CalendarToolbar.tsx
 
 
-export default function CalendarPage() {
+const CalendarPage = () => {
     const dispatch = useDispatch();
     const events = useSelector(selectEvents);
     const [view, setView] = useState(Views.MONTH);
@@ -981,4 +981,6 @@ export default function CalendarPage() {
         </div>
     );
 }
+
+export default React.memo(CalendarPage);
 

@@ -11,6 +11,9 @@ const baseQuery = fetchBaseQuery({
         const token = (getState() as RootState).auth?.token || localStorage.getItem('token');
         if (token) {
             headers.set('authorization', `Bearer ${token}`);
+            // console.log("DEBUG: apiSlice attached token:", token.substring(0, 10) + "...");
+        } else {
+            console.warn("DEBUG: apiSlice found no token!");
         }
         return headers;
     },

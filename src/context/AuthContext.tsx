@@ -8,7 +8,9 @@ import {
 } from "react";
 import { useGetUserQuery, api } from "../slices/apiSlice";
 import { dispatch } from "../store/store";
+import { setCredentials, logOut } from "../slices/authSlice";
 import { resetCalendar } from "../slices/calendarSlice";
+
 import { User } from "../types";
 
 interface AuthContextType {
@@ -89,6 +91,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setToken(jwtToken);
         localStorage.setItem("user", JSON.stringify(userData));
         localStorage.setItem("token", jwtToken);
+        // Sync with Redux
+        dispatch(setCredentials({ user: userData, token: jwtToken }));
     };
 
     const logout = () => {
@@ -108,6 +112,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
 
         // 4. Reset Redux State
+        dispatch(logOut());
         dispatch(api.util.resetApiState());
         dispatch(resetCalendar());
     };

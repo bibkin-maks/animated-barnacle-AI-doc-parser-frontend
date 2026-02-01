@@ -48,14 +48,9 @@ export default function Login() {
       // ref={vantaRef}
       className="
         min-h-screen w-full relative font-montserrat overflow-hidden
-        flex items-center justify-center px-4
+        flex items-center justify-center px-4 bg-transparent
       "
     >
-      {/* Ambient Glow Effects */}
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-40 left-10 w-96 h-96 bg-purple-600 opacity-30 blur-[140px] rounded-full animate-pulse" />
-        <div className="absolute bottom-[-120px] right-[-60px] w-[420px] h-[420px] bg-cyan-500 opacity-30 blur-[160px] rounded-full animate-pulse" />
-      </div>
 
       {/* Login Card */}
       <main

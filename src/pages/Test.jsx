@@ -7,7 +7,7 @@ const Test = () => {
     const navigate = useNavigate();
 
     return (
-        <div className="relative w-full h-screen overflow-hidden text-white font-montserrat">
+        <div className="relative w-full h-screen overflow-hidden text-white font-montserrat bg-transparent">
             {/* <CatGridBackground /> Global background handled in App.jsx */}
 
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none">

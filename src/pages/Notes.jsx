@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Book,
@@ -93,10 +93,46 @@ export default function Notes() {
     const [lastSaved, setLastSaved] = useState(null);
 
     // Sync selected note to local state
-    // ... (Existing useEffect for sync) ...
+    const lastSyncedId = useRef(null);
+    useEffect(() => {
+        if (selectedNoteId && notes.length > 0) {
+            const note = notes.find(n => n.id === selectedNoteId);
+            if (note && lastSyncedId.current !== selectedNoteId) {
+                // Only sync if we switched to a new note (prevents overwriting unsaved edits)
+                setActiveNoteTitle(note.title || "");
+                setActiveNoteContent(note.content || "");
+                lastSyncedId.current = selectedNoteId;
+            }
+        } else if (!selectedNoteId) {
+            lastSyncedId.current = null;
+        }
+    }, [selectedNoteId, notes]);
 
     // Auto-save logic
-    // ... (Existing useEffect for auto-save) ...
+    useEffect(() => {
+        if (!selectedNoteId) return;
+
+        const note = notes.find(n => n.id === selectedNoteId);
+        // Note: checking against note.title/content avoids saving just-loaded data
+        // But we must be careful: if note is undefined (not loaded), don't save.
+        if (!note) return;
+
+        // If content matches backend, don't auto-save
+        if (note.title === activeNoteTitle && note.content === activeNoteContent) return;
+
+        const handler = setTimeout(() => {
+            updateNote({
+                id: selectedNoteId,
+                title: activeNoteTitle,
+                content: activeNoteContent
+            })
+                .unwrap()
+                .then(() => setLastSaved(new Date()))
+                .catch(err => console.error("Auto-save failed", err));
+        }, DEBOUNCE_DELAY);
+
+        return () => clearTimeout(handler);
+    }, [activeNoteTitle, activeNoteContent, selectedNoteId, updateNote]); // Intentionally omitting 'notes' to avoid race conditions
 
     // Handlers
     const handleCreateNotebook = async (e) => {
@@ -388,7 +424,7 @@ export default function Notes() {
                         transition={{ delay: 0.2 }}
                         className="flex-1 flex flex-col min-h-0 rounded-2xl bg-black/40 backdrop-blur-xl border border-white/10 shadow-2xl relative overflow-hidden"
                     >
-                        {selectedNoteId ? (
+                        {selectedNoteId && lastSyncedId.current === selectedNoteId ? (
                             <>
                                 {/* Editor Header */}
                                 <div className="flex-none px-8 py-6 border-b border-white/5">
@@ -412,18 +448,26 @@ export default function Notes() {
                                 {/* Editor Content */}
                                 <div className="flex-1 relative overflow-hidden">
                                     <RichTextEditor
+                                        key={selectedNoteId} // Force remount to reset editor content
                                         content={activeNoteContent}
                                         onChange={setActiveNoteContent}
+                                        onStatsChange={setCharCount}
                                         className="w-full h-full border-none bg-transparent"
                                     />
                                 </div>
                             </>
                         ) : (
                             <div className="flex-1 flex flex-col items-center justify-center text-slate-500 gap-4 opacity-50">
-                                <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center">
-                                    <FileText size={40} strokeWidth={1} />
-                                </div>
-                                <p className="text-sm font-medium tracking-widest uppercase">Select a note to begin</p>
+                                {selectedNoteId ? (
+                                    <div className="animate-pulse">Loading note...</div>
+                                ) : (
+                                    <>
+                                        <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center">
+                                            <FileText size={40} strokeWidth={1} />
+                                        </div>
+                                        <p className="text-sm font-medium tracking-widest uppercase">Select a note to begin</p>
+                                    </>
+                                )}
                             </div>
                         )}
                     </motion.section>

@@ -175,6 +175,23 @@ const RichTextEditor = ({ content, onChange, onStatsChange, className = "" }) =>
     const [graphData, setGraphData] = useState(null);
     const [showGraphModal, setShowGraphModal] = useState(false);
 
+    const updateStats = useCallback((editor) => {
+        let charCount = 0;
+        editor.state.doc.descendants((node) => {
+            if (node.type.name === 'table') {
+                return false;
+            }
+            if (node.isText) {
+                charCount += node.text.length;
+            }
+            return true;
+        });
+
+        if (onStatsChange) {
+            onStatsChange(charCount);
+        }
+    }, [onStatsChange]);
+
     const editor = useEditor({
         extensions: [
             StarterKit,
@@ -191,23 +208,12 @@ const RichTextEditor = ({ content, onChange, onStatsChange, className = "" }) =>
             Color,
         ],
         content: content,
+        onCreate: ({ editor }) => {
+            updateStats(editor);
+        },
         onUpdate: ({ editor }) => {
             onChange(editor.getHTML());
-
-            let charCount = 0;
-            editor.state.doc.descendants((node) => {
-                if (node.type.name === 'table') {
-                    return false;
-                }
-                if (node.isText) {
-                    charCount += node.text.length;
-                }
-                return true;
-            });
-
-            if (onStatsChange) {
-                onStatsChange(charCount);
-            }
+            updateStats(editor);
         },
         editorProps: {
             attributes: {

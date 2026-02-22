@@ -1,10 +1,8 @@
-import { configureStore } from "@reduxjs/toolkit";
-// @ts-ignore
-import chatReducer from "./chatSlice";
-// @ts-ignore
-import calendarReducer from "../slices/calendarSlice";
-import authReducer from "../slices/authSlice";
-import { api } from "../slices/apiSlice";
+import { configureStore } from '@reduxjs/toolkit';
+import chatReducer from './chatSlice';
+import calendarReducer from '../slices/calendarSlice';
+import authReducer from '../slices/authSlice';
+import { api } from '../slices/apiSlice';
 
 // ========================================================================
 // Redux Store
@@ -12,9 +10,7 @@ import { api } from "../slices/apiSlice";
 export const store = configureStore({
     reducer: {
         auth: authReducer,
-        // @ts-ignore
         chat: chatReducer,
-        // @ts-ignore
         calendar: calendarReducer,
         [api.reducerPath]: api.reducer,
     },
@@ -34,3 +30,4 @@ export type AppDispatch = typeof store.dispatch;
 // Optional helpers
 export const getState = () => store.getState();
 export const dispatch = store.dispatch;
+

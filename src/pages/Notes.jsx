@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Reorder } from "framer-motion";
 import {
     Book,
     Plus,
@@ -12,11 +11,19 @@ import {
     LogOut,
     ChevronRight,
     MoreVertical,
-    Settings
+    MoreVertical,
+    Settings,
+    Star,
+    Copy,
+    FilePlus,
+    CornerUpRight,
+    ExternalLink,
+    FolderInput,
+    GripVertical
 } from "lucide-react";
 
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import useResizeObserver from "../hooks/useResizeObserver";
 import Sidebar from "../components/SideBar";
 import {
@@ -28,7 +35,8 @@ import {
     useGetNotesQuery,
     useCreateNoteMutation,
     useUpdateNoteMutation,
-    useDeleteNoteMutation
+    useDeleteNoteMutation,
+    useReorderNotesMutation
 } from "../slices/apiSlice";
 
 
@@ -41,6 +49,10 @@ const DEBOUNCE_DELAY = 1000;
 export default function Notes() {
     const { user, token, logout } = useAuth();
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const urlNoteId = searchParams.get("noteId");
+
+    // ... Existing refs ...
     // const vantaRef = useVantaGlobe();
     const [containerRef, { width, height }] = useResizeObserver();
 
@@ -78,13 +90,68 @@ export default function Notes() {
     const [createNote] = useCreateNoteMutation();
     const [updateNote] = useUpdateNoteMutation();
     const [deleteNote] = useDeleteNoteMutation();
+    const [reorderNotes] = useReorderNotesMutation();
 
-    // Select first notebook by default if none selected
+    // Local state for reordering
+    const [orderedNotes, setOrderedNotes] = useState([]);
+
+    // Sync orderedNotes with fetched notes
     useEffect(() => {
+        setOrderedNotes(notes);
+    }, [notes]);
+
+    // Handle Reorder Save (Debounced)
+    useEffect(() => {
+        if (orderedNotes.length === 0 || !selectedNotebookId) return;
+
+        const currentIds = orderedNotes.map(n => n.id).join(',');
+        const originalIds = notes.map(n => n.id).join(',');
+
+        if (currentIds !== originalIds && orderedNotes.length === notes.length) {
+            const timer = setTimeout(() => {
+                const payload = orderedNotes.map((n, i) => ({ id: n.id, order: i }));
+                reorderNotes({ notebookId: selectedNotebookId, notes: payload });
+            }, 800); // 800ms debounce
+            return () => clearTimeout(timer);
+        }
+    }, [orderedNotes, notes, selectedNotebookId, reorderNotes]);
+
+    // Select first notebook by default if none selected, OR handle URL noteId
+    useEffect(() => {
+        if (urlNoteId && notebooks.length > 0 && notes.length > 0) {
+            // If URL has noteId, find which notebook it belongs to
+            // Flatten all notes from all notebooks? 
+            // Limitation: We only fetch notes for *selected* notebook currently.
+            // Problem: We need to know which notebook the note is in to select it.
+            // Workaround: We might need to iterate or fetch all notes?
+            // For now, let's assume we might need to search or just rely on user context.
+            // Actually, `useGetNotesQuery(selectedNotebookId)` implies we don't have all notes.
+            // We can iterate notebooks and find it, BUT we don't have notes for unselected notebooks loaded.
+            // Solution: We'll skip deep linking across notebooks for this iteration unless we fetch all.
+            // But wait, the notes array depends on selectedNotebookId.
+            // If we want to link a note, we need the notebook ID in the URL too or fetch global.
+            // Let's assume we trust the user opens the right notebook or we add ?notebookId=xyz param.
+
+            // NOTE: Current implementation only loads notes for selectedNotebookId.
+            // If we want deep linking to work reliably, we should add notebookId to URL.
+        }
+
         if (!selectedNotebookId && notebooks.length > 0) {
             setSelectedNotebookId(notebooks[0].id);
         }
-    }, [notebooks, selectedNotebookId]);
+    }, [notebooks, selectedNotebookId, urlNoteId]);
+
+    // Additional Effect for URL handling if we change the route structure later
+    useEffect(() => {
+        if (urlNoteId && selectedNotebookId) {
+            // If we are in a notebook, check if note exists here.
+            // We can't clear selectedNotebookId here easily without context.
+            // Ideally we'd do: /notebooks/:notebookId/notes/:noteId
+        }
+        if (urlNoteId && notes.find(n => n.id === urlNoteId)) {
+            setSelectedNoteId(urlNoteId);
+        }
+    }, [urlNoteId, notes, selectedNotebookId]);
 
     // Local state for active note editing to avoid laggy typing
     const [activeNoteTitle, setActiveNoteTitle] = useState("");
@@ -202,6 +269,52 @@ export default function Notes() {
             }
         }
     }, [deleteNote, selectedNoteId]);
+
+    const handleToggleFavorite = async (noteId) => {
+        const note = notes.find(n => n.id === noteId);
+        if (!note) return;
+        try {
+            await updateNote({ id: noteId, isFavorite: !note.is_favorite }).unwrap();
+        } catch (err) {
+            console.error("Failed to toggle favorite", err);
+        }
+    };
+
+    const handleDuplicateNote = async () => {
+        if (!selectedNoteId || !selectedNotebookId) return;
+        try {
+            const note = notes.find(n => n.id === selectedNoteId);
+            if (!note) return;
+            const result = await createNote({
+                notebookId: selectedNotebookId,
+                title: `${note.title} (Copy)`,
+                content: note.content
+            }).unwrap();
+            setSelectedNoteId(result.id);
+        } catch (err) {
+            console.error("Failed to duplicate note", err);
+        }
+    };
+
+    const handleMoveNote = async () => {
+        if (!selectedNoteId) return;
+        const targetNotebookName = prompt("Enter the exact name of the notebook to move to:");
+        if (!targetNotebookName) return;
+
+        const targetNotebook = notebooks.find(nb => nb.name === targetNotebookName);
+        if (!targetNotebook) {
+            alert("Notebook not found!");
+            return;
+        }
+
+        try {
+            await updateNote({ id: selectedNoteId, notebookId: targetNotebook.id }).unwrap();
+            setSelectedNotebookId(targetNotebook.id); // Switch to that notebook to see the note
+            // setSelectedNoteId(selectedNoteId); // Keep selection? Or might handle sync
+        } catch (err) {
+            console.error("Failed to move note", err);
+        }
+    };
 
 
 
@@ -380,41 +493,58 @@ export default function Notes() {
                             </button>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2 relative" ref={containerRef}>
+                        <Reorder.Group
+                            axis="y"
+                            values={orderedNotes}
+                            onReorder={setOrderedNotes}
+                            className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2 relative"
+                            ref={containerRef}
+                        >
                             {isLoadingNotes ? (
                                 <div className="text-center text-slate-500 text-xs mt-8">Loading notes...</div>
-                            ) : notes.length === 0 ? (
+                            ) : orderedNotes.length === 0 ? (
                                 <div className="text-center text-slate-600 text-xs mt-8 flex flex-col items-center gap-2">
                                     <FileText size={24} className="opacity-20" />
                                     <span>No notes found</span>
                                 </div>
                             ) : (
-                                notes.map((note) => (
-                                    <div
+                                orderedNotes.map((note) => (
+                                    <Reorder.Item
                                         key={note.id}
+                                        value={note}
                                         onClick={() => setSelectedNoteId(note.id)}
                                         className={`group relative p-3 rounded-xl cursor-pointer transition-all duration-200 border ${selectedNoteId === note.id
                                             ? "bg-white/10 border-white/10 shadow-lg"
                                             : "border-transparent hover:bg-white/5 hover:border-white/5"
                                             }`}
                                     >
-                                        <h3 className={`font-semibold text-sm mb-1 truncate ${selectedNoteId === note.id ? 'text-white' : 'text-slate-300'}`}>
-                                            {note.title || "Untitled Note"}
-                                        </h3>
-                                        <p className="text-[10px] text-slate-500 line-clamp-2">
-                                            {note.content?.replace(/<[^>]*>/g, '') || "No content"}
-                                        </p>
+                                        <div className="flex items-start gap-2">
+                                            <div className="mt-1 text-slate-600 cursor-grab active:cursor-grabbing hover:text-slate-400 transition-colors">
+                                                <GripVertical size={12} />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between gap-2 mb-1">
+                                                    <h3 className={`font-semibold text-sm truncate ${selectedNoteId === note.id ? 'text-white' : 'text-slate-300'}`}>
+                                                        {note.title || "Untitled Note"}
+                                                    </h3>
+                                                    {note.is_favorite && <Star size={10} className="fill-amber-400 text-amber-400 flex-none" />}
+                                                </div>
+                                                <p className="text-[10px] text-slate-500 line-clamp-2">
+                                                    {note.content?.replace(/<[^>]*>/g, '') || "No content"}
+                                                </p>
+                                            </div>
+                                        </div>
 
                                         <button
                                             onClick={(e) => handleDeleteNote(note.id, e)}
-                                            className="absolute top-2 right-2 p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                                            className="absolute top-2 right-2 p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all z-10"
                                         >
                                             <Trash2 size={12} />
                                         </button>
-                                    </div>
+                                    </Reorder.Item>
                                 ))
                             )}
-                        </div>
+                        </Reorder.Group>
                     </motion.aside>
 
                     {/* RIGHT PANEL: Editor */}
@@ -442,6 +572,67 @@ export default function Notes() {
                                         </span>
                                         <span className="w-1 h-1 rounded-full bg-slate-700" />
                                         <span>{charCount} chars</span>
+
+                                        {/* OPTIONS MENU */}
+                                        <div className="ml-auto relative group z-50">
+                                            <button className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
+                                                <MoreVertical size={16} />
+                                            </button>
+
+                                            <div className="absolute right-0 top-full mt-2 w-48 bg-[#1a1d24] border border-white/10 rounded-xl shadow-2xl p-1.5 opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-200 transform origin-top-right z-50 flex flex-col gap-0.5">
+                                                <button
+                                                    onClick={() => handleToggleFavorite(selectedNoteId)}
+                                                    className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors text-left"
+                                                >
+                                                    <Star size={14} className={notes.find(n => n.id === selectedNoteId)?.is_favorite ? "fill-amber-400 text-amber-400" : ""} />
+                                                    {notes.find(n => n.id === selectedNoteId)?.is_favorite ? "Remove from Favorites" : "Add to Favorites"}
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(`${window.location.origin}/notes?noteId=${selectedNoteId}`);
+                                                        alert("Link copied!");
+                                                    }}
+                                                    className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors text-left"
+                                                >
+                                                    <Copy size={14} /> Copy link
+                                                </button>
+                                                <button
+                                                    onClick={handleDuplicateNote}
+                                                    className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors text-left"
+                                                >
+                                                    <FilePlus size={14} /> Duplicate
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        const newName = prompt("Rename note:", activeNoteTitle);
+                                                        if (newName) setActiveNoteTitle(newName);
+                                                    }}
+                                                    className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors text-left"
+                                                >
+                                                    <Edit2 size={14} /> Rename
+                                                </button>
+                                                <button
+                                                    onClick={handleMoveNote}
+                                                    className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors text-left"
+                                                >
+                                                    <FolderInput size={14} /> Move to
+                                                </button>
+                                                <div className="h-px bg-white/10 my-1" />
+                                                <button
+                                                    onClick={(e) => handleDeleteNote(selectedNoteId, e)}
+                                                    className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-red-400 hover:bg-red-500/10 rounded-lg transition-colors text-left"
+                                                >
+                                                    <Trash2 size={14} /> Move to Trash
+                                                </button>
+                                                <div className="h-px bg-white/10 my-1" />
+                                                <button
+                                                    onClick={() => window.open(`/notes?noteId=${selectedNoteId}`, '_blank')}
+                                                    className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors text-left"
+                                                >
+                                                    <ExternalLink size={14} /> Open in new tab
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 

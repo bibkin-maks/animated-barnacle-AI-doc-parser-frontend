@@ -111,11 +111,16 @@ export const api = createApi({
             }),
             invalidatesTags: ['Notes'],
         }),
-        updateNote: builder.mutation<void, { id: string; title: string; content: string }>({
-            query: ({ id, title, content }) => ({
+        updateNote: builder.mutation<void, { id: string; title?: string; content?: string; notebookId?: string; isFavorite?: boolean }>({
+            query: ({ id, title, content, notebookId, isFavorite }) => ({
                 url: `/notes/${id}`,
                 method: 'PUT',
-                body: { title, content },
+                body: {
+                    title,
+                    content,
+                    notebook_id: notebookId,
+                    is_favorite: isFavorite
+                },
             }),
             invalidatesTags: ['Notes'],
         }),
@@ -128,6 +133,17 @@ export const api = createApi({
         }),
 
         // --- Events ---
+        reorderNotes: builder.mutation<void, { notebookId: string; notes: { id: string; order: number }[] }>({
+            query: ({ notebookId, notes }) => ({
+                url: `/notebooks/${notebookId}/reorder`,
+                method: 'PUT',
+                body: { notes },
+            }),
+            // We use 'optimistic updates' ideally, but here we just invalidate to re-fetch sorted list
+            // However, since we update local state optimistically, we might not strictly need invalidation if our local state is robust.
+            // But to be safe and consistent with other clients:
+            invalidatesTags: ['Notes'],
+        }),
         getEvents: builder.query<Event[], void>({
             query: () => '/events',
             providesTags: ['Events'],
@@ -181,6 +197,7 @@ export const {
     useCreateNoteMutation,
     useUpdateNoteMutation,
     useDeleteNoteMutation,
+    useReorderNotesMutation,
     useGetEventsQuery,
     useCreateEventMutation,
     useUpdateEventMutation,

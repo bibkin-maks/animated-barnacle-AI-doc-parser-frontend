@@ -26,6 +26,7 @@ export interface Event {
     type?: 'task' | 'project' | 'expense' | 'workout';
     status?: 'pending' | 'in_progress' | 'completed' | 'blocked';
     priority?: 'low' | 'medium' | 'high';
+    isInstance?: boolean; // true for generated recurrence instances (not persisted)
 }
 
 export interface WorkoutLogItem {

@@ -6,11 +6,12 @@ import { createSlice, nanoid } from "@reduxjs/toolkit";
  *   [{ role: "user" | "ai", content: "text" }]
  */
 export const formatMessages = (messages = []) =>
-  messages.map((msg) => ({
+  messages.map((msg, i) => ({
     id: nanoid(),
     text: msg?.content || "",
     sender: msg?.role?.toLowerCase() === "ai" ? "bot" : "user",
-    raw: msg, // keep raw backend message for future debugging/features
+    timestamp: msg?.timestamp || Date.now() - (messages.length - i) * 60000,
+    raw: msg,
   }));
 
 const chatSlice = createSlice({
@@ -43,13 +44,11 @@ const chatSlice = createSlice({
       reducer: (state, action) => {
         state.messages.push(action.payload);
       },
-      prepare: (text) => ({
-        payload: {
-          id: nanoid(),
-          text,
-          sender: "user",
-        },
-      }),
+      prepare: (textOrObj) => {
+        const text = typeof textOrObj === "string" ? textOrObj : textOrObj.text;
+        const timestamp = typeof textOrObj === "object" ? textOrObj.timestamp : Date.now();
+        return { payload: { id: nanoid(), text, sender: "user", timestamp } };
+      },
     },
 
     /**
@@ -59,13 +58,11 @@ const chatSlice = createSlice({
       reducer: (state, action) => {
         state.messages.push(action.payload);
       },
-      prepare: (text) => ({
-        payload: {
-          id: nanoid(),
-          text,
-          sender: "bot",
-        },
-      }),
+      prepare: (textOrObj) => {
+        const text = typeof textOrObj === "string" ? textOrObj : textOrObj.text;
+        const timestamp = typeof textOrObj === "object" ? textOrObj.timestamp : Date.now();
+        return { payload: { id: nanoid(), text, sender: "bot", timestamp } };
+      },
     },
   },
 });

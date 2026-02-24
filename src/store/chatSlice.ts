@@ -4,14 +4,16 @@ export type ChatMessage = {
   id: string;
   text: string;
   sender: 'user' | 'bot';
+  timestamp?: number;
   raw?: any;
 };
 
 export const formatMessages = (messages: any[] = []): ChatMessage[] =>
-  messages.map((msg) => ({
+  messages.map((msg, i) => ({
     id: nanoid(),
     text: msg?.content || '',
     sender: msg?.role?.toLowerCase() === 'ai' ? 'bot' : 'user',
+    timestamp: msg?.timestamp ?? Date.now() - (messages.length - i) * 60000,
     raw: msg,
   }));
 
@@ -37,25 +39,21 @@ const chatSlice = createSlice({
       reducer: (state: ChatState, action: PayloadAction<ChatMessage>) => {
         state.messages.push(action.payload);
       },
-      prepare: (text: string) => ({
-        payload: {
-          id: nanoid(),
-          text,
-          sender: 'user' as const,
-        },
-      }),
+      prepare: (textOrObj: string | { text: string; timestamp?: number }) => {
+        const text = typeof textOrObj === 'string' ? textOrObj : textOrObj.text;
+        const timestamp = typeof textOrObj === 'object' ? (textOrObj.timestamp ?? Date.now()) : Date.now();
+        return { payload: { id: nanoid(), text, sender: 'user' as const, timestamp } };
+      },
     },
     addBotMessage: {
       reducer: (state: ChatState, action: PayloadAction<ChatMessage>) => {
         state.messages.push(action.payload);
       },
-      prepare: (text: string) => ({
-        payload: {
-          id: nanoid(),
-          text,
-          sender: 'bot' as const,
-        },
-      }),
+      prepare: (textOrObj: string | { text: string; timestamp?: number }) => {
+        const text = typeof textOrObj === 'string' ? textOrObj : textOrObj.text;
+        const timestamp = typeof textOrObj === 'object' ? (textOrObj.timestamp ?? Date.now()) : Date.now();
+        return { payload: { id: nanoid(), text, sender: 'bot' as const, timestamp } };
+      },
     },
   },
 });

@@ -123,20 +123,24 @@ const CalendarPage = () => {
         }
     }, [history, historyIndex, dispatch]);
 
-    // Bulk Operations
-    // Bulk Operations - FIX: Ensure proper clearing of selection
-    const handleBulkDelete = useCallback(() => {
+    // Bulk Operations - persists deletes to the API
+    const handleBulkDelete = useCallback(async () => {
         if (selectedEvents.length === 0) return;
 
-        // Get IDs to be deleted
         const deletedIds = [...selectedEvents];
 
+        // Optimistic local update first
         const updatedEvents = events.filter(e => !deletedIds.includes(e.id));
         dispatchWithHistory(setEvents(updatedEvents), events);
-
-        // Clear selection AFTER dispatch
         setSelectedEvents([]);
-    }, [events, selectedEvents, dispatchWithHistory]);
+
+        // Persist each deletion to the backend
+        try {
+            await Promise.all(deletedIds.map(id => deleteEventApi(id).unwrap()));
+        } catch (err) {
+            console.error('Bulk delete failed for some events:', err);
+        }
+    }, [events, selectedEvents, dispatchWithHistory, deleteEventApi]);
 
     const handleBulkStatusChange = useCallback((status) => {
         if (selectedEvents.length === 0) return;
@@ -243,22 +247,16 @@ const CalendarPage = () => {
 
         // 2. Expand Events
         events.forEach(event => {
-            // A. Base Recurring Event -> Generate Instances
             if (event.recurrence && event.recurrence !== 'none' && !event.isInstance) {
-                // Add the base event itself if it falls in range (optional, usually base event is the first instance)
-                // But simplified generator assumes base event is the pattern source.
-
-                // Generate instances for this view
-                const instances = generateRecurringEvents(event, viewStart, viewEnd);
-                expandedEvents.push(...instances);
-
-                // Also add the base event if it's within range and "start" is the first occurrence
-                if (new Date(event.start) >= viewStart && new Date(event.end) <= viewEnd) {
+                // Always add the base event itself if it falls in the view window
+                if (new Date(event.start) >= viewStart && new Date(event.start) <= viewEnd) {
                     expandedEvents.push(event);
                 }
-            }
-            // B. Single Event or Exception -> Add directly
-            else {
+                // Generate recurring instances (starts at occurrence 2+, never duplicates base)
+                const instances = generateRecurringEvents(event, viewStart, viewEnd);
+                expandedEvents.push(...instances);
+            } else {
+                // Single event or already-expanded instance
                 expandedEvents.push(event);
             }
         });
@@ -368,14 +366,20 @@ const CalendarPage = () => {
 
 
     const onEventResize = useCallback(
-        ({ event, start, end }) => {
-            const nextEvents = events.map((existingEvent) => {
-                return existingEvent.id === event.id
-                    ? { ...existingEvent, start: new Date(start), end: new Date(end) }
-                    : existingEvent;
-            });
+        async ({ event, start, end }) => {
+            const updatedEvent = { ...event, start: new Date(start), end: new Date(end) };
+            const nextEvents = events.map((existingEvent) =>
+                existingEvent.id === event.id ? updatedEvent : existingEvent
+            );
 
             dispatchWithHistory(setEvents(nextEvents), events);
+
+            // Persist resize to the API
+            try {
+                await updateEventApi(updatedEvent).unwrap();
+            } catch (err) {
+                console.error('Failed to persist event resize:', err);
+            }
         },
         [events, dispatchWithHistory, updateEventApi]
     );

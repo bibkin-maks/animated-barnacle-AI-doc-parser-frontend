@@ -107,7 +107,19 @@ export const EventModal: React.FC<EventModalProps> = ({
                         />
                     </div>
 
-                    {/* 2. Type Selector (Cards) */}
+                    {/* 2. Description */}
+                    <div className="group">
+                        <label className="block text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-2 ml-1">Description</label>
+                        <textarea
+                            rows={3}
+                            className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-slate-300 placeholder:text-white/10 focus:outline-none focus:border-cyan-500/50 focus:bg-white/5 transition-all duration-300 resize-none custom-scrollbar"
+                            placeholder="Add a description, notes, or details…"
+                            value={event.description || ''}
+                            onChange={(e) => onEventChange({ ...event, description: e.target.value })}
+                        />
+                    </div>
+
+                    {/* 3. Type Selector (Cards) */}
                     <div>
                         <label className="block text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-3 ml-1">Event Type</label>
                         <div className="grid grid-cols-4 gap-3">

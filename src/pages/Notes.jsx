@@ -11,7 +11,6 @@ import {
     LogOut,
     ChevronRight,
     MoreVertical,
-    MoreVertical,
     Settings,
     Star,
     Copy,

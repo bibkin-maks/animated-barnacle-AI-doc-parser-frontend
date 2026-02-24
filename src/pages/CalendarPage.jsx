@@ -123,7 +123,9 @@ const CalendarPage = () => {
         }
     }, [history, historyIndex, dispatch]);
 
-    // handleBulkDelete is defined after API hooks (below)
+    // Ref so the keyboard-shortcut effect can call handleBulkDelete
+    // without needing it declared before the API hooks.
+    const handleBulkDeleteRef = React.useRef(null);
 
     const handleBulkStatusChange = useCallback((status) => {
         if (selectedEvents.length === 0) return;
@@ -169,7 +171,7 @@ const CalendarPage = () => {
             // Delete selected events
             if (e.key === 'Delete' && selectedEvents.length > 0) {
                 e.preventDefault();
-                handleBulkDelete();
+                handleBulkDeleteRef.current?.();
                 return;
             }
 
@@ -194,7 +196,7 @@ const CalendarPage = () => {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [showModal, showTemplateModal, showRecurrenceModal, selectedEvents, undo, redo, handleBulkDelete]);
+    }, [showModal, showTemplateModal, showRecurrenceModal, selectedEvents, undo, redo]);
 
     // Derived State: Filtered Events with useMemo for performance
     // Lazy Loading / Windowing: Only render events within the current view range ±buffer
@@ -333,6 +335,9 @@ const CalendarPage = () => {
             console.error('Bulk delete failed for some events:', err);
         }
     }, [events, selectedEvents, dispatchWithHistory, deleteEventApi]);
+
+    // Keep ref in sync so the keyboard shortcut effect always has the latest version
+    handleBulkDeleteRef.current = handleBulkDelete;
 
 
     // Sync API events to Redux Store

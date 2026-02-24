@@ -123,24 +123,7 @@ const CalendarPage = () => {
         }
     }, [history, historyIndex, dispatch]);
 
-    // Bulk Operations - persists deletes to the API
-    const handleBulkDelete = useCallback(async () => {
-        if (selectedEvents.length === 0) return;
-
-        const deletedIds = [...selectedEvents];
-
-        // Optimistic local update first
-        const updatedEvents = events.filter(e => !deletedIds.includes(e.id));
-        dispatchWithHistory(setEvents(updatedEvents), events);
-        setSelectedEvents([]);
-
-        // Persist each deletion to the backend
-        try {
-            await Promise.all(deletedIds.map(id => deleteEventApi(id).unwrap()));
-        } catch (err) {
-            console.error('Bulk delete failed for some events:', err);
-        }
-    }, [events, selectedEvents, dispatchWithHistory, deleteEventApi]);
+    // handleBulkDelete is defined after API hooks (below)
 
     const handleBulkStatusChange = useCallback((status) => {
         if (selectedEvents.length === 0) return;
@@ -331,6 +314,25 @@ const CalendarPage = () => {
     const [updateEventApi] = useUpdateEventMutation();
     const [deleteEventApi] = useDeleteEventMutation();
     const [deleteAllEventsApi] = useDeleteAllEventsMutation();
+
+    // Bulk Operations - defined here so deleteEventApi is initialized
+    const handleBulkDelete = useCallback(async () => {
+        if (selectedEvents.length === 0) return;
+
+        const deletedIds = [...selectedEvents];
+
+        // Optimistic local update first
+        const updatedEvents = events.filter(e => !deletedIds.includes(e.id));
+        dispatchWithHistory(setEvents(updatedEvents), events);
+        setSelectedEvents([]);
+
+        // Persist each deletion to the backend
+        try {
+            await Promise.all(deletedIds.map(id => deleteEventApi(id).unwrap()));
+        } catch (err) {
+            console.error('Bulk delete failed for some events:', err);
+        }
+    }, [events, selectedEvents, dispatchWithHistory, deleteEventApi]);
 
 
     // Sync API events to Redux Store

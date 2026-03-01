@@ -394,30 +394,74 @@ const CalendarPage = () => {
     const onEventDrop = useCallback(
         async ({ event, start, end, isAllDay: droppedOnAllDaySlot = false }) => {
             const { allDay } = event;
+            const newAllDay = (!allDay && droppedOnAllDaySlot) ? true : (allDay && !droppedOnAllDaySlot) ? false : allDay;
 
-            // Create updated event
+            // Detect if this is a generated recurring instance (id contains _recur_)
+            const isRecurringInstance = event.isInstance && event.id.includes('_recur_');
+
+            if (isRecurringInstance) {
+                // Extract base event id (everything before _recur_)
+                const baseId = event.id.split('_recur_')[0];
+                const baseEvent = events.find(e => e.id === baseId);
+                if (!baseEvent) return;
+
+                // The date of this occurrence that is being moved
+                const originalDateStr = new Date(event.start).toISOString().split('T')[0];
+
+                // 1. Add exception for the original occurrence
+                const updatedBase = {
+                    ...baseEvent,
+                    exceptDates: [...(baseEvent.exceptDates || []), originalDateStr]
+                };
+
+                // 2. Create a standalone detached event at the new time
+                const movedEvent = {
+                    ...event,
+                    id: undefined, // backend will generate a new id
+                    start: new Date(start),
+                    end: new Date(end),
+                    allDay: newAllDay,
+                    recurrence: 'none',
+                    seriesId: null,
+                    isInstance: undefined,
+                    exceptDates: [],
+                };
+
+                // Optimistic local update: update base + add the moved event
+                const nextEvents = events
+                    .map(e => e.id === baseId ? updatedBase : e)
+                    .concat([{ ...movedEvent, id: `temp_${Date.now()}` }]);
+                dispatchWithHistory(setEvents(nextEvents), events);
+
+                try {
+                    await updateEventApi(updatedBase).unwrap();
+                    await createEventApi(movedEvent).unwrap();
+                } catch (err) {
+                    console.error('Failed to move recurring instance:', err);
+                }
+                return;
+            }
+
+            // Regular (non-recurring) event drop
             const updatedEvent = {
                 ...event,
                 start: new Date(start),
                 end: new Date(end),
-                allDay: (!allDay && droppedOnAllDaySlot) ? true :
-                    (allDay && !droppedOnAllDaySlot) ? false : allDay
+                allDay: newAllDay
             };
 
-            // Optimistic update
-            const nextEvents = events.map((existingEvent) => {
-                return existingEvent.id === updatedEvent.id ? updatedEvent : existingEvent;
-            });
+            const nextEvents = events.map((existingEvent) =>
+                existingEvent.id === updatedEvent.id ? updatedEvent : existingEvent
+            );
             dispatchWithHistory(setEvents(nextEvents), events);
 
-            // API Update
             try {
                 await updateEventApi(updatedEvent).unwrap();
             } catch (err) {
-                console.error("Failed to update dropped event", err);
+                console.error('Failed to update dropped event', err);
             }
         },
-        [events, dispatchWithHistory, updateEventApi]
+        [events, dispatchWithHistory, updateEventApi, createEventApi]
     );
 
     const handleSelectSlot = (slotInfo) => {
@@ -601,7 +645,22 @@ const CalendarPage = () => {
         const apiPromises = [];
 
         if (scope === 'this') {
-            apiPromises.push(deleteEventApi(eventToDelete.id).unwrap());
+            // If deleting a generated instance, add its date to the base event's exceptDates
+            if (eventToDelete.isInstance && eventToDelete.id.includes('_recur_')) {
+                const baseId = eventToDelete.id.split('_recur_')[0];
+                const baseEvent = events.find(e => e.id === baseId);
+                if (baseEvent) {
+                    const dateStr = new Date(eventToDelete.start).toISOString().split('T')[0];
+                    const updatedBase = {
+                        ...baseEvent,
+                        exceptDates: [...(baseEvent.exceptDates || []), dateStr]
+                    };
+                    apiPromises.push(updateEventApi(updatedBase).unwrap());
+                }
+                // No deleteEventApi call — instance has no real DB ID
+            } else {
+                apiPromises.push(deleteEventApi(eventToDelete.id).unwrap());
+            }
         } else if (scope === 'following') {
             const futureEvents = events.filter(e =>
                 e.seriesId === eventToDelete.seriesId && new Date(e.start) >= new Date(eventToDelete.start)
@@ -637,21 +696,39 @@ const CalendarPage = () => {
 
     // Replace handleSelectEvent with multi-select version
     const handleSelectEvent = (event, e) => {
-        // Check if synthetic event or native event
         const nativeEvent = e?.nativeEvent || e;
 
         if (nativeEvent && (nativeEvent.shiftKey || nativeEvent.ctrlKey || nativeEvent.metaKey)) {
             // Multi-select mode
             e?.preventDefault?.();
-            setSelectedEvents(prev => {
-                if (prev.includes(event.id)) {
-                    return prev.filter(id => id !== event.id);
-                } else {
-                    return [...prev, event.id];
-                }
-            });
+            setSelectedEvents(prev =>
+                prev.includes(event.id)
+                    ? prev.filter(id => id !== event.id)
+                    : [...prev, event.id]
+            );
         } else {
-            // Single select - open edit modal
+            // If this is a generated recurring instance, resolve to base event for editing
+            if (event.isInstance && event.id.includes('_recur_')) {
+                const baseId = event.id.split('_recur_')[0];
+                const baseEvent = events.find(e => e.id === baseId);
+                if (baseEvent) {
+                    // Open modal pre-populated with the instance's actual date/time
+                    // but tied to the base event so scope (this/all/following) works correctly
+                    setSelectedEvents([baseId]);
+                    setNewEvent({
+                        ...baseEvent,
+                        // Override times with the clicked instance's actual time
+                        start: new Date(event.start),
+                        end: new Date(event.end),
+                        // Tag so executeSave/executeDelete know which occurrence date to except
+                        _instanceDate: new Date(event.start).toISOString().split('T')[0],
+                    });
+                    setShowModal(true);
+                    return;
+                }
+            }
+
+            // Regular single event
             setSelectedEvents([event.id]);
             setNewEvent({
                 ...event,

@@ -27,6 +27,7 @@ export interface Event {
     status?: 'pending' | 'in_progress' | 'completed' | 'blocked';
     priority?: 'low' | 'medium' | 'high';
     isInstance?: boolean; // true for generated recurrence instances (not persisted)
+    exceptDates?: string[];  // YYYY-MM-DD strings of skipped occurrences
 }
 
 export interface WorkoutLogItem {

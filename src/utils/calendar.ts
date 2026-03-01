@@ -43,13 +43,19 @@ export const generateRecurringEvents = (baseEvent: Event, viewStart: Date, viewE
         if (next > viewEnd) break;
 
         if (next >= viewStart) {
-            instances.push({
-                ...baseEvent,
-                id: `${baseEvent.id}_recur_${next.getTime()}`,
-                start: new Date(next),
-                end: new Date(next.getTime() + duration),
-                isInstance: true,
-            } as Event);
+            // Skip if this date is in the exception list
+            const nextDateStr = next.toISOString().split('T')[0];
+            const isExcepted = (baseEvent.exceptDates || []).includes(nextDateStr);
+
+            if (!isExcepted) {
+                instances.push({
+                    ...baseEvent,
+                    id: `${baseEvent.id}_recur_${next.getTime()}`,
+                    start: new Date(next),
+                    end: new Date(next.getTime() + duration),
+                    isInstance: true,
+                } as Event);
+            }
         }
 
         i++;

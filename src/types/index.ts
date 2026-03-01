@@ -47,6 +47,8 @@ export interface Note {
     notebook_id: string;
     title: string;
     content: string;
+    is_favorite: boolean;
+    order: number;
     created_at: string;
     updated_at: string;
 }

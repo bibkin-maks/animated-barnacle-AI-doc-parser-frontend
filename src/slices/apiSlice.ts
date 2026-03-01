@@ -44,6 +44,13 @@ export const api = createApi({
             }),
             invalidatesTags: ['User'],
         }),
+        clearMessages: builder.mutation<void, void>({
+            query: () => ({
+                url: '/messages/clear',
+                method: 'DELETE',
+            }),
+            invalidatesTags: ['User'],
+        }),
 
         // --- Chat / Docs ---
         uploadDocument: builder.mutation<void, FormData>({
@@ -186,6 +193,7 @@ export const {
     useGetUserQuery,
     useUserAuthMutation,
     useSignoutMutation,
+    useClearMessagesMutation,
     useUploadDocumentMutation,
     useRemoveDocumentMutation,
     useSendMessageMutation,
